@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>STLViewer.Domain</AssemblyName>
+    <RootNamespace>STLViewer.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\STLViewer.Math\STLViewer.Math.csproj" />
+  </ItemGroup>
+
+</Project>
