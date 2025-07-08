@@ -6,6 +6,7 @@ using STLViewer.Infrastructure.Examples;
 using STLViewer.Infrastructure.Graphics;
 using STLViewer.Infrastructure.Parsers;
 using STLViewer.Infrastructure.Plugins;
+using STLViewer.Infrastructure.Scene;
 using Serilog;
 using AutoMapper;
 using MediatR;
@@ -60,6 +61,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMeasurementService, MeasurementService>();
         services.AddSingleton<IModelRepository, Infrastructure.Repositories.InMemoryModelRepository>();
         services.AddSingleton<IMeasurementSessionRepository, Infrastructure.Repositories.InMemoryMeasurementSessionRepository>();
+
+        // Add scene management services
+        services.AddScoped<ISceneManager, Infrastructure.Scene.SceneManager>();
+        services.AddSingleton<ISceneRepository, Infrastructure.Scene.InMemorySceneRepository>();
 
         // Graphics and rendering
         services.AddTransient<ICamera, Camera>();

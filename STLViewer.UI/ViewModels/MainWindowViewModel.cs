@@ -22,6 +22,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ISTLParser _stlParser;
     private readonly IMediator _mediator;
     private readonly IFileManagementService? _fileManagementService;
+    private readonly ISceneManager? _sceneManager;
     private ObservableCollection<DomainFileInfo> _recentFiles = new();
 
     public MainWindowViewModel()
@@ -30,28 +31,43 @@ public partial class MainWindowViewModel : ViewModelBase
         _stlParser = new STLParserService();
         _mediator = null!; // Will be null for design-time
         _fileManagementService = null;
+        _sceneManager = null;
         Viewport = new Viewport3DViewModel(_stlParser);
+        SceneTree = null; // Will be null for design-time
         InitializeCommands();
     }
 
-    public MainWindowViewModel(ISTLParser stlParser, IMediator mediator, IFileManagementService fileManagementService)
+    public MainWindowViewModel(ISTLParser stlParser, IMediator mediator, IFileManagementService fileManagementService, ISceneManager sceneManager)
     {
         _stlParser = stlParser ?? throw new ArgumentNullException(nameof(stlParser));
         _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         _fileManagementService = fileManagementService ?? throw new ArgumentNullException(nameof(fileManagementService));
+        _sceneManager = sceneManager ?? throw new ArgumentNullException(nameof(sceneManager));
         Viewport = new Viewport3DViewModel(_stlParser);
+
+        // Initialize scene tree
+        SceneTree = new SceneTreeViewModel(_sceneManager, _mediator);
 
         // Subscribe to recent files changes
         _fileManagementService.RecentFilesChanged += OnRecentFilesChanged;
 
         InitializeCommands();
+        // Load recent files
         _ = LoadRecentFilesAsync();
+
+        // Create a default scene
+        CreateDefaultSceneAsync();
     }
 
     /// <summary>
     /// The 3D viewport ViewModel that handles STL model loading and display.
     /// </summary>
     public Viewport3DViewModel Viewport { get; }
+
+    /// <summary>
+    /// The scene tree ViewModel that handles the scene hierarchy.
+    /// </summary>
+    public SceneTreeViewModel? SceneTree { get; }
 
     /// <summary>
     /// Command to open a file dialog and load an STL file.
@@ -815,5 +831,24 @@ public partial class MainWindowViewModel : ViewModelBase
             }
             this.RaisePropertyChanged(nameof(HasRecentFiles));
         });
+    }
+
+    private void CreateDefaultSceneAsync()
+    {
+        try
+        {
+            if (_sceneManager != null)
+            {
+                var result = _sceneManager.CreateScene("Default Scene");
+                if (result.IsSuccess)
+                {
+                    _sceneManager.SetCurrentScene(result.Value);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error creating default scene: {ex.Message}");
+        }
     }
 }

@@ -71,12 +71,14 @@ public partial class App : Avalonia.Application
                     // Try to get services from service locator
                     var mediator = ServiceLocator.GetRequiredService<MediatR.IMediator>();
                     var fileManagementService = ServiceLocator.GetRequiredService<STLViewer.Core.Interfaces.IFileManagementService>();
+                    var sceneManager = ServiceLocator.GetRequiredService<STLViewer.Core.Interfaces.ISceneManager>();
                     desktop.MainWindow = new MainWindow
                     {
                         DataContext = new MainWindowViewModel(
                             new STLViewer.Infrastructure.Parsers.STLParserService(),
                             mediator,
-                            fileManagementService)
+                            fileManagementService,
+                            sceneManager)
                     };
                 }
                 catch

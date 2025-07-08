@@ -177,6 +177,25 @@ public readonly struct BoundingBox : IEquatable<BoundingBox>
     }
 
     /// <summary>
+    /// Combines this bounding box with another bounding box to create a new bounding box that encompasses both.
+    /// </summary>
+    /// <param name="other">The other bounding box to combine with.</param>
+    /// <returns>A new bounding box that encompasses both input boxes.</returns>
+    public BoundingBox Union(BoundingBox other)
+    {
+        if (IsEmpty)
+            return other;
+
+        if (other.IsEmpty)
+            return this;
+
+        return new BoundingBox(
+            Vector3.Min(Min, other.Min),
+            Vector3.Max(Max, other.Max)
+        );
+    }
+
+    /// <summary>
     /// Expands this bounding box by the specified amount in all directions.
     /// </summary>
     /// <param name="amount">The amount to expand by.</param>
