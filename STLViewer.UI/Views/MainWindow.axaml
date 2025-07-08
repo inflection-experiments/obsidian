@@ -1,20 +1,309 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:STLViewer.UI.ViewModels"
+        xmlns:controls="using:STLViewer.UI.Controls"
+        xmlns:interfaces="using:STLViewer.Core.Interfaces"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="STLViewer.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="STLViewer.UI">
+        Title="STL Viewer"
+        MinWidth="800"
+        MinHeight="600">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Menu Bar -->
+        <Menu Grid.Row="0">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open STL..." Command="{Binding OpenFileCommand}"/>
+                <MenuItem Header="_Recent Files" IsEnabled="False"/>
+                <Separator/>
+                <MenuItem Header="Load _Sample Cube" Command="{Binding LoadSampleCommand}"/>
+                <Separator/>
+                <MenuItem Header="_Clear Model" Command="{Binding Viewport.ClearModelCommand}"/>
+                <Separator/>
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="Show _Controls">
+                    <MenuItem.Icon>
+                        <CheckBox IsChecked="{Binding Viewport.ShowControls}" IsHitTestVisible="False"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Reset _Camera" Command="{Binding ResetCameraCommand}"/>
+                <MenuItem Header="_Frame Model" Command="{Binding FrameModelCommand}"/>
+                <Separator/>
+                <MenuItem Header="Rendering Mode">
+                    <MenuItem Header="_Surface" Command="{Binding SetSurfaceModeCommand}"/>
+                    <MenuItem Header="_Wireframe" Command="{Binding SetWireframeModeCommand}"/>
+                    <MenuItem Header="S_haded Wireframe" Command="{Binding SetShadedWireframeModeCommand}"/>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Toggle _Lighting" Command="{Binding ToggleLightingCommand}"/>
+                <MenuItem Header="Toggle _Backface Culling" Command="{Binding ToggleBackfaceCullingCommand}"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About" Command="{Binding AboutCommand}"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="250"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 3D Viewport -->
+            <controls:Viewport3D Grid.Column="0"
+                                 Model="{Binding Viewport.CurrentModel}"
+                                 ShowControls="{Binding Viewport.ShowControls}"
+                                 x:Name="MainViewport"/>
+
+            <!-- Splitter -->
+            <GridSplitter Grid.Column="1"
+                          Background="Gray"
+                          Width="2"
+                          ResizeDirection="Columns"/>
+
+            <!-- Side Panel -->
+            <Border Grid.Column="2"
+                    Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1,0,0,0">
+
+                <ScrollViewer>
+                    <StackPanel Margin="10" Spacing="15">
+
+                        <!-- File Information -->
+                        <Expander Header="File Information" IsExpanded="True">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="{Binding Viewport.FileInfo}"
+                                           TextWrapping="Wrap"
+                                           IsVisible="{Binding Viewport.FileInfo, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                <TextBlock Text="No file loaded"
+                                           Foreground="Gray"
+                                           IsVisible="{Binding Viewport.FileInfo, Converter={x:Static ObjectConverters.IsNull}}"/>
+
+                                <Button Content="Open File..."
+                                        Command="{Binding OpenFileCommand}"
+                                        HorizontalAlignment="Stretch"/>
+
+                                <Button Content="Reload"
+                                        Command="{Binding Viewport.ReloadFileCommand}"
+                                        HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Model Information -->
+                        <Expander Header="Model Information" IsExpanded="True">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="{Binding Viewport.ModelInfo}"
+                                           TextWrapping="Wrap"
+                                           IsVisible="{Binding Viewport.ModelInfo, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                                <TextBlock Text="No model loaded"
+                                           Foreground="Gray"
+                                           IsVisible="{Binding Viewport.ModelInfo, Converter={x:Static ObjectConverters.IsNull}}"/>
+
+                                <Button Content="Load Sample Cube"
+                                        Command="{Binding LoadSampleCommand}"
+                                        HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Camera Controls -->
+                        <Expander Header="Camera Controls" IsExpanded="True">
+                            <StackPanel Spacing="8">
+                                <Button Content="Reset Camera"
+                                        Command="{Binding ResetCameraCommand}"
+                                        HorizontalAlignment="Stretch"/>
+                                <Button Content="Frame Model"
+                                        Command="{Binding FrameModelCommand}"
+                                        HorizontalAlignment="Stretch"/>
+
+                                <CheckBox Content="Show Viewport Controls"
+                                          IsChecked="{Binding Viewport.ShowControls}"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Render Settings -->
+                        <Expander Header="Render Settings" IsExpanded="True">
+                            <StackPanel Spacing="8">
+
+                                <!-- Rendering Mode -->
+                                <TextBlock Text="Rendering Mode:" FontWeight="SemiBold"/>
+                                <ComboBox Name="RenderModeComboBox" HorizontalAlignment="Stretch">
+                                    <ComboBoxItem Content="Surface" IsSelected="True"/>
+                                    <ComboBoxItem Content="Wireframe"/>
+                                    <ComboBoxItem Content="Shaded Wireframe"/>
+                                </ComboBox>
+
+                                <!-- Material Settings -->
+                                <TextBlock Text="Material:" FontWeight="SemiBold" Margin="0,10,0,0"/>
+
+                                <!-- Material Preset -->
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Preset:" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Column="1" Name="MaterialPresetsComboBox"
+                                              SelectedItem="{Binding Viewport.MaterialPreset}"
+                                              HorizontalAlignment="Stretch" Width="120">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="interfaces:MaterialPreset">
+                                                <TextBlock Text="{Binding}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+
+                                <!-- Model Color -->
+                                <Grid Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="60"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Color:" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Viewport.MaterialColorHex}"
+                                               VerticalAlignment="Center" FontFamily="Consolas" FontSize="10"/>
+                                    <Button Grid.Column="2" Name="ColorPickerButton" Content="🎨"
+                                            Width="30" Height="25"/>
+                                </Grid>
+
+                                <!-- Transparency -->
+                                <Grid Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="60"/>
+                                        <ColumnDefinition Width="40"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Transparency:" VerticalAlignment="Center"/>
+                                    <Slider Grid.Column="1" Name="TransparencySlider"
+                                            Minimum="0" Maximum="1" Value="{Binding Viewport.Transparency}"
+                                            TickFrequency="0.1"/>
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding Viewport.Transparency, StringFormat='{}{0:F2}'}"
+                                               VerticalAlignment="Center" FontSize="10"/>
+                                </Grid>
+
+                                <CheckBox Name="EnableTransparencyCheckBox"
+                                          Content="Enable Transparency"
+                                          IsChecked="{Binding Viewport.EnableTransparency}"
+                                          Margin="0,2,0,0"/>
+
+                                <!-- Legacy dropdown for backward compatibility -->
+                                <ComboBox Name="MaterialPresetsComboBoxLegacy" HorizontalAlignment="Stretch" IsVisible="False">
+                                    <ComboBoxItem Content="Default" IsSelected="True"/>
+                                    <ComboBoxItem Content="Metal"/>
+                                    <ComboBoxItem Content="Plastic"/>
+                                    <ComboBoxItem Content="Matte"/>
+                                    <ComboBoxItem Content="Glossy"/>
+                                </ComboBox>
+
+                                <!-- Lighting Settings -->
+                                <TextBlock Text="Lighting:" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                                <CheckBox Name="EnableLightingCheckBox" Content="Enable Lighting" IsChecked="True"/>
+
+                                <StackPanel IsEnabled="{Binding ElementName=EnableLightingCheckBox, Path=IsChecked}">
+                                    <Grid Margin="0,5,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Ambient:" VerticalAlignment="Center"/>
+                                        <Slider Grid.Column="1" Name="AmbientSlider"
+                                                Minimum="0" Maximum="1" Value="0.2"
+                                                TickFrequency="0.1"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,5,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Shininess:" VerticalAlignment="Center"/>
+                                        <Slider Grid.Column="1" Name="ShininessSlider"
+                                                Minimum="1" Maximum="128" Value="32"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Background -->
+                                <TextBlock Text="Background:" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                                <ComboBox Name="BackgroundComboBox" HorizontalAlignment="Stretch">
+                                    <ComboBoxItem Content="Black" IsSelected="True"/>
+                                    <ComboBoxItem Content="White"/>
+                                    <ComboBoxItem Content="Gray"/>
+                                    <ComboBoxItem Content="Blue"/>
+                                    <ComboBoxItem Content="Dark Blue"/>
+                                </ComboBox>
+
+                                <!-- Additional Options -->
+                                <TextBlock Text="Options:" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                                <CheckBox Name="BackfaceCullingCheckBox" Content="Backface Culling" IsChecked="True"/>
+                                <CheckBox Name="AntiAliasingCheckBox" Content="Anti-aliasing" IsChecked="True"/>
+                                <CheckBox Name="ShowNormalsCheckBox" Content="Show Normals"/>
+                                <CheckBox Name="ShowBoundingBoxCheckBox" Content="Show Bounding Box"/>
+
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Status -->
+                        <Expander Header="Status" IsExpanded="True">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="{Binding Viewport.StatusMessage}"
+                                           TextWrapping="Wrap"/>
+
+                                <ProgressBar IsIndeterminate="{Binding Viewport.IsLoading}"
+                                             IsVisible="{Binding Viewport.IsLoading}"/>
+                            </StackPanel>
+                        </Expander>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                BorderThickness="0,1,0,0"
+                Height="25">
+            <Grid>
+                <TextBlock Text="{Binding Viewport.StatusMessage}"
+                           VerticalAlignment="Center"
+                           Margin="10,0"
+                           FontSize="11"/>
+
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Margin="10,0"
+                            Spacing="15">
+
+                    <TextBlock Text="{Binding Viewport.ModelInfo}"
+                               FontSize="11"
+                               Foreground="Gray"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
 
 </Window>
