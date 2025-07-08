@@ -6,7 +6,7 @@ namespace STLViewer.Application.Queries;
 /// <summary>
 /// Query to get the list of recently opened files.
 /// </summary>
-public class GetRecentFilesQuery : IRequest<IReadOnlyList<FileInfo>>
+public class GetRecentFilesQuery : IRequest<IReadOnlyList<Domain.ValueObjects.FileInfo>>
 {
     /// <summary>
     /// Gets whether to refresh the files status before returning.

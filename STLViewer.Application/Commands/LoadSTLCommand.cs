@@ -67,7 +67,7 @@ public class LoadSTLCommandHandler : IRequestHandler<LoadSTLCommand, Result<STLM
             var modelDto = _mapper.Map<STLModelDto>(stlModel);
 
             // Add file information
-            var fileInfo = new FileInfo(request.FilePath);
+            var fileInfo = new System.IO.FileInfo(request.FilePath);
             modelDto.FilePath = request.FilePath;
             modelDto.FileSize = fileInfo.Length;
             modelDto.CreatedAt = fileInfo.CreationTime;

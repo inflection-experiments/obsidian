@@ -183,7 +183,7 @@ public sealed class FileInfo : IEquatable<FileInfo>
         int counter = 0;
         decimal number = bytes;
 
-        while (Math.Round(number / 1024) >= 1)
+        while (System.Math.Round(number / 1024) >= 1)
         {
             number = number / 1024;
             counter++;

@@ -28,7 +28,7 @@ public class LoadFilesCommandHandler : IRequestHandler<LoadFilesCommand, Result<
         {
             if (!request.FilePaths.Any())
             {
-                return Result<IReadOnlyList<STLModel>>.Failure("No file paths provided");
+                return Result<IReadOnlyList<STLModel>>.Fail("No file paths provided");
             }
 
             _logger.LogInformation("Loading {Count} STL files", request.FilePaths.Count);
@@ -38,7 +38,7 @@ public class LoadFilesCommandHandler : IRequestHandler<LoadFilesCommand, Result<
                 var validationResult = await _fileManagementService.ValidateFilesAsync(request.FilePaths);
                 if (!validationResult.IsSuccess)
                 {
-                    return Result<IReadOnlyList<STLModel>>.Failure($"File validation failed: {validationResult.Error}");
+                    return Result<IReadOnlyList<STLModel>>.Fail($"File validation failed: {validationResult.Error}");
                 }
 
                 var validation = validationResult.Value!;
@@ -46,7 +46,7 @@ public class LoadFilesCommandHandler : IRequestHandler<LoadFilesCommand, Result<
                 {
                     var errorMessages = validation.InvalidFiles.Select(e => $"{e.FilePath}: {e.ErrorMessage}");
                     var combinedError = string.Join("; ", errorMessages);
-                    return Result<IReadOnlyList<STLModel>>.Failure($"Some files are invalid: {combinedError}");
+                    return Result<IReadOnlyList<STLModel>>.Fail($"Some files are invalid: {combinedError}");
                 }
 
                 // If continuing on error, only load valid files
@@ -74,7 +74,7 @@ public class LoadFilesCommandHandler : IRequestHandler<LoadFilesCommand, Result<
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading STL files");
-            return Result<IReadOnlyList<STLModel>>.Failure($"Error loading files: {ex.Message}");
+            return Result<IReadOnlyList<STLModel>>.Fail($"Error loading files: {ex.Message}");
         }
     }
 }

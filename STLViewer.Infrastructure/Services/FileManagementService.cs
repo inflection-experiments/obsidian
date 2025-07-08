@@ -102,12 +102,12 @@ public class FileManagementService : IFileManagementService, IDisposable
             }
 
             var result = new FileValidationResult(validFiles, invalidFiles);
-            return Result<FileValidationResult>.Success(result);
+            return Result<FileValidationResult>.Ok(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error validating files");
-            return Result<FileValidationResult>.Failure($"Error validating files: {ex.Message}");
+            return Result<FileValidationResult>.Fail($"Error validating files: {ex.Message}");
         }
     }
 
@@ -124,7 +124,7 @@ public class FileManagementService : IFileManagementService, IDisposable
             var validation = await ValidateSingleFileAsync(filePath);
             if (!validation.IsSuccess)
             {
-                return Result<STLModel>.Failure(validation.Error!);
+                return Result<STLModel>.Fail(validation.Error!);
             }
 
             var fileInfo = validation.Value!;
@@ -180,7 +180,7 @@ public class FileManagementService : IFileManagementService, IDisposable
             var validationResult = await ValidateFilesAsync(filePathList);
             if (!validationResult.IsSuccess)
             {
-                return Result<IReadOnlyList<STLModel>>.Failure(validationResult.Error!);
+                return Result<IReadOnlyList<STLModel>>.Fail(validationResult.Error!);
             }
 
             var validation = validationResult.Value!;
@@ -188,7 +188,7 @@ public class FileManagementService : IFileManagementService, IDisposable
             {
                 var errorMessages = validation.InvalidFiles.Select(e => $"{e.FilePath}: {e.ErrorMessage}");
                 var combinedError = string.Join("; ", errorMessages);
-                return Result<IReadOnlyList<STLModel>>.Failure($"Some files are invalid: {combinedError}");
+                return Result<IReadOnlyList<STLModel>>.Fail($"Some files are invalid: {combinedError}");
             }
 
             var totalFiles = validation.ValidFiles.Count;
@@ -207,7 +207,7 @@ public class FileManagementService : IFileManagementService, IDisposable
                     var cancelArgs = new FileOperationProgressEventArgs(
                         operationId, null, totalFiles, i, FileOperationStatus.Cancelled, startTime: context.StartTime);
                     FileOperationCompleted?.Invoke(this, cancelArgs);
-                    return Result<IReadOnlyList<STLModel>>.Failure("Operation was cancelled");
+                    return Result<IReadOnlyList<STLModel>>.Fail("Operation was cancelled");
                 }
 
                 var fileInfo = validation.ValidFiles[i];
@@ -246,7 +246,7 @@ public class FileManagementService : IFileManagementService, IDisposable
             FileOperationCompleted?.Invoke(this, completeArgs);
 
             _logger.LogInformation("Batch loaded {LoadedCount}/{TotalCount} STL files", loadedModels.Count, totalFiles);
-            return Result<IReadOnlyList<STLModel>>.Success(loadedModels);
+            return Result<IReadOnlyList<STLModel>>.Ok(loadedModels);
         }
         finally
         {
@@ -335,22 +335,22 @@ public class FileManagementService : IFileManagementService, IDisposable
     /// <inheritdoc/>
     public async Task<Result<Domain.ValueObjects.FileInfo>> GetFileInfoAsync(string filePath, CancellationToken cancellationToken = default)
     {
-        try
+                try
         {
             if (!File.Exists(filePath))
             {
-                return Result<Domain.ValueObjects.FileInfo>.Failure("File does not exist");
+                return Result<Domain.ValueObjects.FileInfo>.Fail("File does not exist");
             }
 
             var format = await _stlParser.DetectFormatAsync(filePath, cancellationToken);
             var fileInfo = Domain.ValueObjects.FileInfo.FromPath(filePath, format);
 
-            return Result<Domain.ValueObjects.FileInfo>.Success(fileInfo);
+            return Result<Domain.ValueObjects.FileInfo>.Ok(fileInfo);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting file info for {FilePath}", filePath);
-            return Result<Domain.ValueObjects.FileInfo>.Failure($"Error getting file info: {ex.Message}");
+            return Result<Domain.ValueObjects.FileInfo>.Fail($"Error getting file info: {ex.Message}");
         }
     }
 
@@ -361,26 +361,26 @@ public class FileManagementService : IFileManagementService, IDisposable
             // Check if file exists
             if (!File.Exists(filePath))
             {
-                return Result<Domain.ValueObjects.FileInfo>.Failure("File does not exist");
+                return Result<Domain.ValueObjects.FileInfo>.Fail("File does not exist");
             }
 
             // Check extension
             var extension = Path.GetExtension(filePath);
             if (!ValidExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
             {
-                return Result<Domain.ValueObjects.FileInfo>.Failure($"Invalid file extension. Expected: {string.Join(", ", ValidExtensions)}");
+                return Result<Domain.ValueObjects.FileInfo>.Fail($"Invalid file extension. Expected: {string.Join(", ", ValidExtensions)}");
             }
 
             // Check file size
-            var fileInfo = new FileInfo(filePath);
+            var fileInfo = new System.IO.FileInfo(filePath);
             if (fileInfo.Length == 0)
             {
-                return Result<Domain.ValueObjects.FileInfo>.Failure("File is empty");
+                return Result<Domain.ValueObjects.FileInfo>.Fail("File is empty");
             }
 
             if (fileInfo.Length > MaxFileSizeBytes)
             {
-                return Result<Domain.ValueObjects.FileInfo>.Failure($"File is too large. Maximum size: {MaxFileSizeBytes / (1024 * 1024)}MB");
+                return Result<Domain.ValueObjects.FileInfo>.Fail($"File is too large. Maximum size: {MaxFileSizeBytes / (1024 * 1024)}MB");
             }
 
             // Check if we can read the file
@@ -388,27 +388,27 @@ public class FileManagementService : IFileManagementService, IDisposable
             {
                 using var stream = File.OpenRead(filePath);
                 // Try to read a small portion to verify access
-                var buffer = new byte[Math.Min(1024, fileInfo.Length)];
+                var buffer = new byte[System.Math.Min(1024, (int)fileInfo.Length)];
                 await stream.ReadAsync(buffer, 0, buffer.Length);
             }
             catch (UnauthorizedAccessException)
             {
-                return Result<Domain.ValueObjects.FileInfo>.Failure("Cannot read file: Access denied");
+                return Result<Domain.ValueObjects.FileInfo>.Fail("Cannot read file: Access denied");
             }
             catch (IOException ex)
             {
-                return Result<Domain.ValueObjects.FileInfo>.Failure($"Cannot read file: {ex.Message}");
+                return Result<Domain.ValueObjects.FileInfo>.Fail($"Cannot read file: {ex.Message}");
             }
 
             // Detect format
             var format = await _stlParser.DetectFormatAsync(filePath);
             var stlFileInfo = Domain.ValueObjects.FileInfo.FromPath(filePath, format);
 
-            return Result<Domain.ValueObjects.FileInfo>.Success(stlFileInfo);
+            return Result<Domain.ValueObjects.FileInfo>.Ok(stlFileInfo);
         }
         catch (Exception ex)
         {
-            return Result<Domain.ValueObjects.FileInfo>.Failure($"Validation error: {ex.Message}");
+            return Result<Domain.ValueObjects.FileInfo>.Fail($"Validation error: {ex.Message}");
         }
     }
 

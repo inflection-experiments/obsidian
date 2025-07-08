@@ -8,7 +8,7 @@ namespace STLViewer.Application.Queries;
 /// <summary>
 /// Handler for getting recent files.
 /// </summary>
-public class GetRecentFilesQueryHandler : IRequestHandler<GetRecentFilesQuery, IReadOnlyList<FileInfo>>
+public class GetRecentFilesQueryHandler : IRequestHandler<GetRecentFilesQuery, IReadOnlyList<Domain.ValueObjects.FileInfo>>
 {
     private readonly IFileManagementService _fileManagementService;
     private readonly ILogger<GetRecentFilesQueryHandler> _logger;
@@ -21,7 +21,7 @@ public class GetRecentFilesQueryHandler : IRequestHandler<GetRecentFilesQuery, I
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<IReadOnlyList<FileInfo>> Handle(GetRecentFilesQuery request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Domain.ValueObjects.FileInfo>> Handle(GetRecentFilesQuery request, CancellationToken cancellationToken)
     {
         try
         {
@@ -38,7 +38,7 @@ public class GetRecentFilesQueryHandler : IRequestHandler<GetRecentFilesQuery, I
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving recent files");
-            return Array.Empty<FileInfo>();
+            return Array.Empty<Domain.ValueObjects.FileInfo>();
         }
     }
 }
