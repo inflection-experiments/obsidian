@@ -66,11 +66,25 @@ public partial class App : Avalonia.Application
             // Fallback to create window without DI if something goes wrong
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new MainWindow
+                try
                 {
-                    DataContext = new MainWindowViewModel(
-                        new STLViewer.Infrastructure.Parsers.STLParserService())
-                };
+                    // Try to get mediator from service locator
+                    var mediator = ServiceLocator.GetRequiredService<MediatR.IMediator>();
+                    desktop.MainWindow = new MainWindow
+                    {
+                        DataContext = new MainWindowViewModel(
+                            new STLViewer.Infrastructure.Parsers.STLParserService(),
+                            mediator)
+                    };
+                }
+                catch
+                {
+                    // Final fallback - use design-time constructor
+                    desktop.MainWindow = new MainWindow
+                    {
+                        DataContext = new MainWindowViewModel()
+                    };
+                }
             }
         }
 

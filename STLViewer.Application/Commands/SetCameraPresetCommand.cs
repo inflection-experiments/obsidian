@@ -66,10 +66,12 @@ public class SetCameraPresetCommandValidator : AbstractValidator<SetCameraPreset
 public class SetCameraPresetCommandHandler : IRequestHandler<SetCameraPresetCommand, Result>
 {
     private readonly ICamera _camera;
+    private readonly ICameraAnimationService _animationService;
 
-    public SetCameraPresetCommandHandler(ICamera camera)
+    public SetCameraPresetCommandHandler(ICamera camera, ICameraAnimationService animationService)
     {
         _camera = camera ?? throw new ArgumentNullException(nameof(camera));
+        _animationService = animationService ?? throw new ArgumentNullException(nameof(animationService));
     }
 
     public async Task<Result> Handle(SetCameraPresetCommand request, CancellationToken cancellationToken)
@@ -88,7 +90,13 @@ public class SetCameraPresetCommandHandler : IRequestHandler<SetCameraPresetComm
             // Apply the camera preset
             if (request.Animated)
             {
-                await AnimateCameraToPreset(preset, request.AnimationDurationMs, cancellationToken);
+                var animationResult = await _animationService.AnimateToCameraPresetAsync(
+                    _camera, preset, request.AnimationDurationMs, cancellationToken);
+
+                if (animationResult.IsFailure)
+                {
+                    return Result.Fail($"Animation failed: {animationResult.Error}");
+                }
             }
             else
             {
@@ -127,63 +135,5 @@ public class SetCameraPresetCommandHandler : IRequestHandler<SetCameraPresetComm
         _camera.SetFieldOfView(preset.FieldOfView * MathF.PI / 180.0f); // Convert degrees to radians
     }
 
-    private async Task AnimateCameraToPreset(CameraPreset preset, int durationMs, CancellationToken cancellationToken)
-    {
-        // Get current camera state
-        var startPosition = _camera.Position;
-        var startTarget = _camera.Target;
-        var startUp = _camera.Up;
-        var startFov = _camera.FieldOfView * 180.0f / MathF.PI; // Convert radians to degrees
 
-        // Target camera state
-        var endPosition = preset.Position;
-        var endTarget = preset.Target;
-        var endUp = preset.Up;
-        var endFov = preset.FieldOfView;
-
-        // Animation parameters
-        var startTime = DateTime.UtcNow;
-        var duration = TimeSpan.FromMilliseconds(durationMs);
-
-        while (DateTime.UtcNow - startTime < duration)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            // Calculate interpolation factor (0 to 1)
-            var elapsed = DateTime.UtcNow - startTime;
-            var t = MathF.Min(1.0f, (float)(elapsed.TotalMilliseconds / duration.TotalMilliseconds));
-
-            // Apply easing function (smooth step)
-            t = SmoothStep(t);
-
-            // Interpolate camera parameters
-            var currentPosition = Vector3.Lerp(startPosition, endPosition, t);
-            var currentTarget = Vector3.Lerp(startTarget, endTarget, t);
-            var currentUp = Vector3.Lerp(startUp, endUp, t);
-            var currentFov = Lerp(startFov, endFov, t);
-
-            // Apply interpolated values
-            _camera.SetPosition(currentPosition);
-            _camera.SetTarget(currentTarget);
-            _camera.SetUp(currentUp.Normalized());
-            _camera.SetFieldOfView(currentFov * MathF.PI / 180.0f); // Convert degrees to radians
-
-            // Small delay to allow rendering
-            await Task.Delay(16, cancellationToken); // ~60 FPS
-        }
-
-        // Ensure final position is exact
-        ApplyCameraPreset(preset);
-    }
-
-    private float SmoothStep(float t)
-    {
-        // Smooth step function: 3t² - 2t³
-        return t * t * (3.0f - 2.0f * t);
-    }
-
-    private float Lerp(float start, float end, float t)
-    {
-        return start + (end - start) * t;
-    }
 }

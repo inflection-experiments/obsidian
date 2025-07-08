@@ -5,11 +5,13 @@ using STLViewer.Core.Interfaces;
 using STLViewer.Infrastructure.Examples;
 using STLViewer.Infrastructure.Graphics;
 using STLViewer.Infrastructure.Parsers;
+using STLViewer.Infrastructure.Plugins;
 using Serilog;
 using AutoMapper;
 using MediatR;
 using FluentValidation;
 using System.Reflection;
+using STLViewer.Infrastructure.Services;
 
 namespace STLViewer.Infrastructure.Extensions;
 
@@ -53,12 +55,17 @@ public static class ServiceCollectionExtensions
 
         // Add core services
         services.AddScoped<ISTLParser, STLParserService>();
+        // Graphics and rendering
         services.AddTransient<ICamera, Camera>();
+        services.AddTransient<ICameraAnimationService, CameraAnimationService>();
         // Note: RendererFactory is static and doesn't need DI registration
 
         // Add pre-loaded model generators
         services.AddScoped<FighterPlaneModelGenerator>();
         services.AddScoped<IPreloadedModelGenerator, FighterPlaneModelGenerator>();
+
+        // Add scene plugin services
+        services.AddSingleton<IScenePluginManager, Infrastructure.Plugins.ScenePluginManager>();
 
         // Add HTTP client with Polly for resilience
         services.AddHttpClient("STLViewer", client =>
@@ -112,6 +119,33 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(Configuration.LoggingOptions.SectionName));
 
         return services;
+    }
+
+    /// <summary>
+    /// Initializes the plugin system with default plugins.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <returns>A result indicating success or failure.</returns>
+    public static STLViewer.Domain.Common.Result InitializePlugins(this IServiceProvider serviceProvider)
+    {
+        try
+        {
+            var pluginManager = serviceProvider.GetRequiredService<IScenePluginManager>();
+            var result = ((ScenePluginManager)pluginManager).RegisterDefaultPlugins();
+
+            if (result.IsFailure)
+            {
+                return result;
+            }
+
+            // Enable the flight path plugin by default
+            var enableResult = pluginManager.EnablePlugin("flight-path-visualizer");
+            return enableResult;
+        }
+        catch (Exception ex)
+        {
+            return STLViewer.Domain.Common.Result.Fail($"Failed to initialize plugins: {ex.Message}");
+        }
     }
 }
 

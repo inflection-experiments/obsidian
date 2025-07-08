@@ -69,6 +69,15 @@
                 <Separator/>
                 <MenuItem Header="Toggle _Lighting" Command="{Binding ToggleLightingCommand}"/>
                 <MenuItem Header="Toggle _Backface Culling" Command="{Binding ToggleBackfaceCullingCommand}"/>
+                <Separator/>
+                <MenuItem Header="Flight Path">
+                    <MenuItem Header="Enable Plugin" Command="{Binding EnableFlightPathPluginCommand}"/>
+                    <MenuItem Header="Disable Plugin" Command="{Binding DisableFlightPathPluginCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="Create Sample Path" Command="{Binding CreateSampleFlightPathCommand}"/>
+                    <MenuItem Header="Start Animation" Command="{Binding StartFlightPathAnimationCommand}"/>
+                    <MenuItem Header="Stop Animation" Command="{Binding StopFlightPathAnimationCommand}"/>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="_Help">
                 <MenuItem Header="_About" Command="{Binding AboutCommand}"/>
@@ -319,6 +328,58 @@
                                 <CheckBox Name="ShowNormalsCheckBox" Content="Show Normals"/>
                                 <CheckBox Name="ShowBoundingBoxCheckBox" Content="Show Bounding Box"/>
 
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Flight Path Plugin -->
+                        <Expander Header="Flight Path" IsExpanded="False">
+                            <StackPanel Spacing="8">
+                                <TextBlock Text="Plugin Control:" FontWeight="SemiBold"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="Enable"
+                                            Command="{Binding EnableFlightPathPluginCommand}"
+                                            Margin="2" FontSize="10"/>
+                                    <Button Grid.Column="1" Content="Disable"
+                                            Command="{Binding DisableFlightPathPluginCommand}"
+                                            Margin="2" FontSize="10"/>
+                                </Grid>
+
+                                <TextBlock Text="Flight Path:" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                                <Button Content="Create Sample Path"
+                                        Command="{Binding CreateSampleFlightPathCommand}"
+                                        HorizontalAlignment="Stretch"/>
+
+                                <TextBlock Text="Animation:" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="Start"
+                                            Command="{Binding StartFlightPathAnimationCommand}"
+                                            Margin="2" FontSize="10"/>
+                                    <Button Grid.Column="1" Content="Stop"
+                                            Command="{Binding StopFlightPathAnimationCommand}"
+                                            Margin="2" FontSize="10"/>
+                                </Grid>
+
+                                <TextBlock Text="Speed:" VerticalAlignment="Center" Margin="0,5,0,0"/>
+                                <Slider Name="FlightPathSpeedSlider"
+                                        Minimum="0.1" Maximum="5" Value="1"
+                                        TickFrequency="0.1"/>
+                                <TextBlock Text="{Binding ElementName=FlightPathSpeedSlider, Path=Value, StringFormat='{}{0:F1}x'}"
+                                           HorizontalAlignment="Center" FontSize="10"/>
+
+                                <TextBlock Text="Controls:" FontWeight="SemiBold" Margin="0,10,0,0"/>
+                                <TextBlock Text="• Space: Toggle Animation" FontSize="10"/>
+                                <TextBlock Text="• R: Reset Animation" FontSize="10"/>
+                                <TextBlock Text="• P: Toggle Path Visibility" FontSize="10"/>
+                                <TextBlock Text="• W: Toggle Waypoints" FontSize="10"/>
+                                <TextBlock Text="• T: Toggle Trajectory" FontSize="10"/>
                             </StackPanel>
                         </Expander>
 

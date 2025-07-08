@@ -1,3 +1,4 @@
+using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using STLViewer.Application.Commands;
@@ -7,6 +8,9 @@ using STLViewer.Math;
 
 namespace STLViewer.Application.Queries;
 
+/// <summary>
+/// Query to get statistics for an STL model.
+/// </summary>
 public class GetModelStatisticsQuery : IRequest<Result<ModelStatisticsDto>>
 {
     public string FilePath { get; set; } = string.Empty;
@@ -29,14 +33,6 @@ public class ModelStatisticsDto
     public int DegenerateTriangleCount { get; set; }
     public bool IsManifold { get; set; }
     public bool IsWatertight { get; set; }
-}
-
-public class BoundingBoxDto
-{
-    public Vector3Dto Min { get; set; } = new();
-    public Vector3Dto Max { get; set; } = new();
-    public Vector3Dto Size { get; set; } = new();
-    public Vector3Dto Center { get; set; } = new();
 }
 
 public class GetModelStatisticsQueryHandler : IRequestHandler<GetModelStatisticsQuery, Result<ModelStatisticsDto>>
