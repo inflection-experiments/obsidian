@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using STLViewer.Core.Interfaces;
+using STLViewer.Infrastructure.Examples;
 using STLViewer.Infrastructure.Graphics;
 using STLViewer.Infrastructure.Parsers;
 using Serilog;
@@ -55,12 +56,15 @@ public static class ServiceCollectionExtensions
         services.AddTransient<ICamera, Camera>();
         // Note: RendererFactory is static and doesn't need DI registration
 
+        // Add pre-loaded model generators
+        services.AddScoped<FighterPlaneModelGenerator>();
+        services.AddScoped<IPreloadedModelGenerator, FighterPlaneModelGenerator>();
+
         // Add HTTP client with Polly for resilience
         services.AddHttpClient("STLViewer", client =>
         {
             client.Timeout = TimeSpan.FromSeconds(30);
-        })
-        .AddPolicyHandler(PollyPolicies.CreateCombinedPolicy());
+        });
 
         return services;
     }

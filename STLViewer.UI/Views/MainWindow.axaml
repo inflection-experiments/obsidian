@@ -31,6 +31,9 @@
                 <MenuItem Header="_Recent Files" IsEnabled="False"/>
                 <Separator/>
                 <MenuItem Header="Load _Sample Cube" Command="{Binding LoadSampleCommand}"/>
+                <MenuItem Header="Pre-loaded Models">
+                    <MenuItem Header="Fighter Plane" Command="{Binding LoadFighterPlaneCommand}"/>
+                </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Clear Model" Command="{Binding Viewport.ClearModelCommand}"/>
                 <Separator/>
@@ -45,6 +48,18 @@
                 <Separator/>
                 <MenuItem Header="Reset _Camera" Command="{Binding ResetCameraCommand}"/>
                 <MenuItem Header="_Frame Model" Command="{Binding FrameModelCommand}"/>
+                <Separator/>
+                <MenuItem Header="Camera Presets">
+                    <MenuItem Header="_Front View (F1)" Command="{Binding SetCameraPresetCommand}" CommandParameter="front"/>
+                    <MenuItem Header="_Back View (F2)" Command="{Binding SetCameraPresetCommand}" CommandParameter="back"/>
+                    <MenuItem Header="_Top View (F3)" Command="{Binding SetCameraPresetCommand}" CommandParameter="top"/>
+                    <MenuItem Header="B_ottom View (F4)" Command="{Binding SetCameraPresetCommand}" CommandParameter="bottom"/>
+                    <MenuItem Header="_Left View (F5)" Command="{Binding SetCameraPresetCommand}" CommandParameter="left"/>
+                    <MenuItem Header="_Right View (F6)" Command="{Binding SetCameraPresetCommand}" CommandParameter="right"/>
+                    <Separator/>
+                    <MenuItem Header="_Isometric View (F7)" Command="{Binding SetCameraPresetCommand}" CommandParameter="isometric"/>
+                    <MenuItem Header="_Perspective View (F8)" Command="{Binding SetCameraPresetCommand}" CommandParameter="perspective"/>
+                </MenuItem>
                 <Separator/>
                 <MenuItem Header="Rendering Mode">
                     <MenuItem Header="_Surface" Command="{Binding SetSurfaceModeCommand}"/>
@@ -137,6 +152,49 @@
 
                                 <CheckBox Content="Show Viewport Controls"
                                           IsChecked="{Binding Viewport.ShowControls}"/>
+
+                                <!-- Camera Presets -->
+                                <TextBlock Text="Camera Presets:" FontWeight="SemiBold" Margin="0,10,0,5"/>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Button Grid.Row="0" Grid.Column="0" Content="Front"
+                                            Command="{Binding SetCameraPresetCommand}" CommandParameter="front"
+                                            Margin="2" FontSize="10"/>
+                                    <Button Grid.Row="0" Grid.Column="1" Content="Back"
+                                            Command="{Binding SetCameraPresetCommand}" CommandParameter="back"
+                                            Margin="2" FontSize="10"/>
+                                    <Button Grid.Row="0" Grid.Column="2" Content="Top"
+                                            Command="{Binding SetCameraPresetCommand}" CommandParameter="top"
+                                            Margin="2" FontSize="10"/>
+
+                                    <Button Grid.Row="1" Grid.Column="0" Content="Bottom"
+                                            Command="{Binding SetCameraPresetCommand}" CommandParameter="bottom"
+                                            Margin="2" FontSize="10"/>
+                                    <Button Grid.Row="1" Grid.Column="1" Content="Left"
+                                            Command="{Binding SetCameraPresetCommand}" CommandParameter="left"
+                                            Margin="2" FontSize="10"/>
+                                    <Button Grid.Row="1" Grid.Column="2" Content="Right"
+                                            Command="{Binding SetCameraPresetCommand}" CommandParameter="right"
+                                            Margin="2" FontSize="10"/>
+
+                                    <Button Grid.Row="2" Grid.Column="0" Content="Isometric"
+                                            Command="{Binding SetCameraPresetCommand}" CommandParameter="isometric"
+                                            Margin="2" FontSize="10"/>
+                                    <Button Grid.Row="2" Grid.Column="1" Content="Perspective"
+                                            Command="{Binding SetCameraPresetCommand}" CommandParameter="perspective"
+                                            Margin="2" FontSize="10"/>
+                                </Grid>
                             </StackPanel>
                         </Expander>
 

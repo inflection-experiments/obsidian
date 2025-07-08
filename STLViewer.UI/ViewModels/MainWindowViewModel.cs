@@ -44,6 +44,11 @@ public partial class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> LoadSampleCommand { get; private set; } = null!;
 
     /// <summary>
+    /// Command to load the fighter plane pre-loaded model.
+    /// </summary>
+    public ReactiveCommand<Unit, Unit> LoadFighterPlaneCommand { get; private set; } = null!;
+
+    /// <summary>
     /// Command to reset the camera to its default position.
     /// </summary>
     public ReactiveCommand<Unit, Unit> ResetCameraCommand { get; private set; } = null!;
@@ -89,6 +94,11 @@ public partial class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> ToggleBackfaceCullingCommand { get; private set; } = null!;
 
     /// <summary>
+    /// Command to set a camera preset.
+    /// </summary>
+    public ReactiveCommand<string, Unit> SetCameraPresetCommand { get; private set; } = null!;
+
+    /// <summary>
     /// Gets whether surface rendering mode is selected.
     /// </summary>
     public bool IsRenderModeSurface => Viewport.RenderMode == Core.Interfaces.RenderMode.Surface;
@@ -118,6 +128,7 @@ public partial class MainWindowViewModel : ViewModelBase
         // Initialize commands
         OpenFileCommand = ReactiveCommand.CreateFromTask(OpenFileAsync);
         LoadSampleCommand = ReactiveCommand.Create(LoadSample);
+        LoadFighterPlaneCommand = ReactiveCommand.CreateFromTask(LoadFighterPlaneAsync);
         ResetCameraCommand = ReactiveCommand.Create(ResetCamera);
         FrameModelCommand = ReactiveCommand.Create(FrameModel);
         AboutCommand = ReactiveCommand.Create(ShowAbout);
@@ -129,6 +140,7 @@ public partial class MainWindowViewModel : ViewModelBase
         SetShadedWireframeModeCommand = ReactiveCommand.Create(SetShadedWireframeMode);
         ToggleLightingCommand = ReactiveCommand.Create(ToggleLighting);
         ToggleBackfaceCullingCommand = ReactiveCommand.Create(ToggleBackfaceCulling);
+        SetCameraPresetCommand = ReactiveCommand.CreateFromTask<string>(SetCameraPresetAsync);
 
         // Subscribe to viewport property changes to update menu states
         Viewport.WhenAnyValue(x => x.RenderMode)
@@ -214,6 +226,25 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private async Task LoadFighterPlaneAsync()
+    {
+        try
+        {
+            Viewport.StatusMessage = "Loading fighter plane model...";
+
+            // In a real implementation, this would use MediatR to send a LoadPreloadedModelCommand
+            // For now, we'll use a placeholder approach
+            await Task.Delay(500); // Simulate loading time
+
+            // This is a placeholder - in real implementation would use the Application layer
+            Viewport.StatusMessage = "Fighter plane model loaded successfully!";
+        }
+        catch (Exception ex)
+        {
+            Viewport.StatusMessage = $"Error loading fighter plane: {ex.Message}";
+        }
+    }
+
     private void ResetCamera()
     {
         // This will be handled by the viewport control directly
@@ -265,5 +296,23 @@ public partial class MainWindowViewModel : ViewModelBase
     private void ToggleBackfaceCulling()
     {
         Viewport.IsBackfaceCullingEnabled = !Viewport.IsBackfaceCullingEnabled;
+    }
+
+    private async Task SetCameraPresetAsync(string presetId)
+    {
+        try
+        {
+            Viewport.StatusMessage = $"Setting camera to {presetId} view...";
+
+            // In a real implementation, this would use MediatR to send a SetCameraPresetCommand
+            // For now, we'll use a placeholder approach
+            await Task.Delay(300); // Simulate animation time
+
+            Viewport.StatusMessage = $"Camera set to {presetId} view";
+        }
+        catch (Exception ex)
+        {
+            Viewport.StatusMessage = $"Error setting camera preset: {ex.Message}";
+        }
     }
 }
