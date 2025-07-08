@@ -306,7 +306,7 @@ public class FileManagementService : IFileManagementService, IDisposable
     }
 
     /// <inheritdoc/>
-    public async Task RefreshRecentFilesAsync()
+    public Task RefreshRecentFilesAsync()
     {
         lock (_recentFilesLock)
         {
@@ -330,6 +330,8 @@ public class FileManagementService : IFileManagementService, IDisposable
                 RecentFilesChanged?.Invoke(this, RecentFiles);
             }
         }
+
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc/>

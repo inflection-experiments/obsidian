@@ -13,6 +13,7 @@ using STLViewer.Domain.ValueObjects;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using DomainFileInfo = STLViewer.Domain.ValueObjects.FileInfo;
 
 namespace STLViewer.UI.ViewModels;
 
@@ -21,7 +22,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ISTLParser _stlParser;
     private readonly IMediator _mediator;
     private readonly IFileManagementService? _fileManagementService;
-    private ObservableCollection<FileInfo> _recentFiles = new();
+    private ObservableCollection<DomainFileInfo> _recentFiles = new();
 
     public MainWindowViewModel()
     {
@@ -198,7 +199,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>
     /// Gets the collection of recent files.
     /// </summary>
-    public ObservableCollection<FileInfo> RecentFiles => _recentFiles;
+    public ObservableCollection<DomainFileInfo> RecentFiles => _recentFiles;
 
     /// <summary>
     /// Gets whether there are any recent files.
@@ -802,7 +803,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private void OnRecentFilesChanged(object? sender, IReadOnlyList<FileInfo> recentFiles)
+    private void OnRecentFilesChanged(object? sender, IReadOnlyList<DomainFileInfo> recentFiles)
     {
         // Update the observable collection on the UI thread
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>

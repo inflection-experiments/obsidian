@@ -8,6 +8,7 @@ using ReactiveUI;
 using STLViewer.Core.Interfaces;
 using STLViewer.Domain.Entities;
 using STLViewer.Infrastructure.Parsers;
+using STLViewer.Application.DTOs;
 
 namespace STLViewer.UI.ViewModels;
 
@@ -291,6 +292,57 @@ public class Viewport3DViewModel : ViewModelBase
             CurrentModel = null;
             CurrentFilePath = null;
         }
+    }
+
+        /// <summary>
+    /// Loads an STL model directly.
+    /// </summary>
+    /// <param name="model">The STL model to load.</param>
+    public void LoadModel(STLModel model)
+    {
+        CurrentModel = model;
+        CurrentFilePath = model.Metadata.FileName;
+        StatusMessage = $"Loaded: {Path.GetFileName(model.Metadata.FileName)} ({model.TriangleCount:N0} triangles)";
+
+        // Trigger property change notifications for computed properties
+        this.RaisePropertyChanged(nameof(FileInfo));
+        this.RaisePropertyChanged(nameof(ModelInfo));
+    }
+
+        /// <summary>
+    /// Loads an STL model from a DTO.
+    /// </summary>
+    /// <param name="modelDto">The STL model DTO to load.</param>
+    public void LoadModel(STLModelDto modelDto)
+    {
+        // Convert DTO to domain entity
+        var triangles = modelDto.Triangles.Select(t => new Domain.ValueObjects.Triangle(
+            vertex1: new Math.Vector3(t.Vertex1.X, t.Vertex1.Y, t.Vertex1.Z),
+            vertex2: new Math.Vector3(t.Vertex2.X, t.Vertex2.Y, t.Vertex2.Z),
+            vertex3: new Math.Vector3(t.Vertex3.X, t.Vertex3.Y, t.Vertex3.Z),
+            normal: new Math.Vector3(t.Normal.X, t.Normal.Y, t.Normal.Z)
+        )).ToList();
+
+        var modelResult = STLModel.CreateFromTriangles(
+            fileName: modelDto.Name ?? "Unknown",
+            triangles: triangles,
+            rawData: System.Text.Encoding.UTF8.GetBytes(""), // Placeholder
+            format: modelDto.Format);
+
+        if (modelResult.IsSuccess)
+        {
+            CurrentModel = modelResult.Value;
+            CurrentFilePath = modelDto.FilePath;
+            StatusMessage = $"Loaded: {Path.GetFileName(modelDto.Name ?? "Unknown")} ({modelDto.Triangles.Count:N0} triangles)";
+        }
+        else
+        {
+            StatusMessage = $"Failed to load model: {modelResult.Error}";
+        }
+
+        // Trigger property change notifications for computed properties
+        this.RaisePropertyChanged(nameof(FileInfo));
+        this.RaisePropertyChanged(nameof(ModelInfo));
     }
 
     /// <summary>

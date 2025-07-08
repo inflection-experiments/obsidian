@@ -12,6 +12,7 @@ using MediatR;
 using FluentValidation;
 using System.Reflection;
 using STLViewer.Infrastructure.Services;
+using STLViewer.Infrastructure.Repositories;
 
 namespace STLViewer.Infrastructure.Extensions;
 
@@ -56,6 +57,9 @@ public static class ServiceCollectionExtensions
         // Add core services
         services.AddScoped<ISTLParser, STLParserService>();
         services.AddScoped<IFileManagementService, FileManagementService>();
+        services.AddScoped<IMeasurementService, MeasurementService>();
+        services.AddSingleton<IModelRepository, Infrastructure.Repositories.InMemoryModelRepository>();
+        services.AddSingleton<IMeasurementSessionRepository, Infrastructure.Repositories.InMemoryMeasurementSessionRepository>();
 
         // Graphics and rendering
         services.AddTransient<ICamera, Camera>();

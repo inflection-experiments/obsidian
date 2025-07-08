@@ -33,8 +33,6 @@
                     <MenuItem.ItemTemplate>
                         <DataTemplate>
                             <MenuItem Header="{Binding FileName}"
-                                      Command="{Binding $parent[Window].DataContext.OpenRecentFileCommand}"
-                                      CommandParameter="{Binding FilePath}"
                                       ToolTip.Tip="{Binding FilePath}"/>
                         </DataTemplate>
                     </MenuItem.ItemTemplate>
@@ -121,10 +119,7 @@
             <Grid Grid.Column="0">
                 <controls:Viewport3D Model="{Binding Viewport.CurrentModel}"
                                      ShowControls="{Binding Viewport.ShowControls}"
-                                     x:Name="MainViewport"
-                                     AllowDrop="True"
-                                     DragOver="OnDragOver"
-                                     Drop="OnDrop"/>
+                                     x:Name="MainViewport"/>
 
                 <!-- Drag and Drop Overlay -->
                 <Border x:Name="DragDropOverlay"
@@ -214,8 +209,6 @@
                                                         BorderThickness="0"
                                                         HorizontalAlignment="Stretch"
                                                         HorizontalContentAlignment="Stretch"
-                                                        Command="{Binding $parent[Window].DataContext.OpenRecentFileCommand}"
-                                                        CommandParameter="{Binding FilePath}"
                                                         Padding="5,3">
                                                     <StackPanel Orientation="Vertical" Spacing="2">
                                                         <TextBlock Text="{Binding FileNameWithoutExtension}"
