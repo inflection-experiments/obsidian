@@ -46,20 +46,29 @@
                     </MenuItem.Icon>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="Reset _Camera" Command="{Binding ResetCameraCommand}"/>
-                <MenuItem Header="_Frame Model" Command="{Binding FrameModelCommand}"/>
-                <Separator/>
                 <MenuItem Header="Camera Presets">
-                    <MenuItem Header="_Front View (F1)" Command="{Binding SetCameraPresetCommand}" CommandParameter="front"/>
-                    <MenuItem Header="_Back View (F2)" Command="{Binding SetCameraPresetCommand}" CommandParameter="back"/>
-                    <MenuItem Header="_Top View (F3)" Command="{Binding SetCameraPresetCommand}" CommandParameter="top"/>
-                    <MenuItem Header="B_ottom View (F4)" Command="{Binding SetCameraPresetCommand}" CommandParameter="bottom"/>
-                    <MenuItem Header="_Left View (F5)" Command="{Binding SetCameraPresetCommand}" CommandParameter="left"/>
-                    <MenuItem Header="_Right View (F6)" Command="{Binding SetCameraPresetCommand}" CommandParameter="right"/>
-                    <Separator/>
-                    <MenuItem Header="_Isometric View (F7)" Command="{Binding SetCameraPresetCommand}" CommandParameter="isometric"/>
-                    <MenuItem Header="_Perspective View (F8)" Command="{Binding SetCameraPresetCommand}" CommandParameter="perspective"/>
+                    <MenuItem Header="Front (F1)" Command="{Binding SetCameraPresetCommand}" CommandParameter="Front" InputGesture="F1"/>
+                    <MenuItem Header="Back (F2)" Command="{Binding SetCameraPresetCommand}" CommandParameter="Back" InputGesture="F2"/>
+                    <MenuItem Header="Top (F3)" Command="{Binding SetCameraPresetCommand}" CommandParameter="Top" InputGesture="F3"/>
+                    <MenuItem Header="Bottom (F4)" Command="{Binding SetCameraPresetCommand}" CommandParameter="Bottom" InputGesture="F4"/>
+                    <MenuItem Header="Left (F5)" Command="{Binding SetCameraPresetCommand}" CommandParameter="Left" InputGesture="F5"/>
+                    <MenuItem Header="Right (F6)" Command="{Binding SetCameraPresetCommand}" CommandParameter="Right" InputGesture="F6"/>
+                    <MenuItem Header="Isometric (F7)" Command="{Binding SetCameraPresetCommand}" CommandParameter="Isometric" InputGesture="F7"/>
+                    <MenuItem Header="Perspective (F8)" Command="{Binding SetCameraPresetCommand}" CommandParameter="Perspective" InputGesture="F8"/>
                 </MenuItem>
+                <Separator/>
+                <MenuItem Header="Lighting Presets">
+                    <MenuItem Header="Basic" Command="{Binding SetLightingPresetCommand}" CommandParameter="Basic"/>
+                    <MenuItem Header="Studio" Command="{Binding SetLightingPresetCommand}" CommandParameter="Studio"/>
+                    <MenuItem Header="Outdoor" Command="{Binding SetLightingPresetCommand}" CommandParameter="Outdoor"/>
+                    <MenuItem Header="Indoor" Command="{Binding SetLightingPresetCommand}" CommandParameter="Indoor"/>
+                    <MenuItem Header="Technical" Command="{Binding SetLightingPresetCommand}" CommandParameter="Technical"/>
+                    <MenuItem Header="Dramatic" Command="{Binding SetLightingPresetCommand}" CommandParameter="Dramatic"/>
+                    <MenuItem Header="Showcase" Command="{Binding SetLightingPresetCommand}" CommandParameter="Showcase"/>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Reset Camera" Command="{Binding ResetCameraCommand}"/>
+                <MenuItem Header="Frame Model" Command="{Binding FrameModelCommand}"/>
                 <Separator/>
                 <MenuItem Header="Rendering Mode">
                     <MenuItem Header="_Surface" Command="{Binding SetSurfaceModeCommand}"/>

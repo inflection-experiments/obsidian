@@ -8,6 +8,7 @@ using STLViewer.Core.Interfaces;
 using STLViewer.Infrastructure.Parsers;
 using MediatR;
 using STLViewer.Application.Commands;
+using System.Collections.Generic;
 
 namespace STLViewer.UI.ViewModels;
 
@@ -104,6 +105,19 @@ public partial class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<string, System.Reactive.Unit> SetCameraPresetCommand { get; private set; } = null!;
 
     /// <summary>
+    /// Command to set a lighting preset.
+    /// </summary>
+    public ReactiveCommand<string, System.Reactive.Unit> SetLightingPresetCommand { get; private set; } = null!;
+
+    /// <summary>
+    /// Gets the available lighting presets.
+    /// </summary>
+    public IEnumerable<string> LightingPresets { get; } = new[]
+    {
+        "Basic", "Studio", "Outdoor", "Indoor", "Technical", "Dramatic", "Showcase"
+    };
+
+    /// <summary>
     /// Command to enable the flight path plugin.
     /// </summary>
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> EnableFlightPathPluginCommand { get; private set; } = null!;
@@ -171,6 +185,7 @@ public partial class MainWindowViewModel : ViewModelBase
         ToggleLightingCommand = ReactiveCommand.Create(ToggleLighting);
         ToggleBackfaceCullingCommand = ReactiveCommand.Create(ToggleBackfaceCulling);
         SetCameraPresetCommand = ReactiveCommand.CreateFromTask<string>(SetCameraPresetAsync);
+        SetLightingPresetCommand = ReactiveCommand.CreateFromTask<string>(SetLightingPresetAsync);
 
         // Flight path plugin commands
         EnableFlightPathPluginCommand = ReactiveCommand.CreateFromTask(EnableFlightPathPluginAsync);
@@ -438,6 +453,53 @@ public partial class MainWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             Viewport.StatusMessage = $"Error setting camera preset: {ex.Message}";
+        }
+    }
+
+    private async Task SetLightingPresetAsync(string presetId)
+    {
+        try
+        {
+            if (_mediator == null)
+            {
+                // Design-time fallback
+                Viewport.StatusMessage = $"Setting lighting to {presetId} preset...";
+                await Task.Delay(300);
+                Viewport.StatusMessage = $"Lighting set to {presetId} preset";
+                return;
+            }
+
+            Viewport.StatusMessage = $"Setting lighting to {presetId} preset...";
+
+            // Parse the preset type from string
+            if (!Enum.TryParse<STLViewer.Domain.ValueObjects.LightingPresetType>(presetId, true, out var presetType))
+            {
+                Viewport.StatusMessage = $"Invalid lighting preset: {presetId}";
+                return;
+            }
+
+            // Create and send the lighting preset command
+            var command = new STLViewer.Application.Commands.SetLightingPresetCommand
+            {
+                PresetType = presetType,
+                Animated = true,
+                AnimationDurationMs = 500
+            };
+
+            var result = await _mediator.Send(command);
+
+            if (result.IsSuccess)
+            {
+                Viewport.StatusMessage = $"Lighting set to {presetId} preset";
+            }
+            else
+            {
+                Viewport.StatusMessage = $"Error setting lighting preset: {result.Error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Viewport.StatusMessage = $"Error setting lighting preset: {ex.Message}";
         }
     }
 

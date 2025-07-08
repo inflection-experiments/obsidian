@@ -20,13 +20,14 @@ using STLViewer.Infrastructure.Graphics;
 using STLViewer.Infrastructure.Graphics.OpenGL;
 using STLViewer.Math;
 using Color = STLViewer.Math.Color;
+using STLViewer.Infrastructure.Parsers;
 
 namespace STLViewer.UI.Controls;
 
 /// <summary>
-/// Custom 3D viewport control for Avalonia with camera controls and OpenGL rendering.
+/// 3D viewport control for displaying STL models using OpenGL rendering.
 /// </summary>
-public partial class Viewport3D : UserControl, IDisposable
+public partial class Viewport3D : UserControl
 {
     // OpenGL
     private OpenGlControl? _openGlControl;
@@ -34,6 +35,7 @@ public partial class Viewport3D : UserControl, IDisposable
     private ICamera? _camera;
     private STLModel? _currentModel;
     private RenderSettings _renderSettings = new();
+    private ILightingService? _lightingService;
 
     // Mouse/touch interaction state
     private Point _lastMousePosition;
@@ -71,6 +73,26 @@ public partial class Viewport3D : UserControl, IDisposable
         InitializeRenderSettings();
         SetupEventHandlers();
         CreateOpenGLControl();
+
+        // Try to get lighting service from service locator (fallback for design-time)
+        try
+        {
+            _lightingService = ServiceLocator.GetService<ILightingService>();
+        }
+        catch
+        {
+            // Design-time or DI not available - will use fallback lighting
+            _lightingService = null;
+        }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the Viewport3D class with dependency injection.
+    /// </summary>
+    /// <param name="lightingService">The lighting service.</param>
+    public Viewport3D(ILightingService lightingService) : this()
+    {
+        _lightingService = lightingService;
     }
 
     private void InitializeRenderSettings()
@@ -243,11 +265,19 @@ public partial class Viewport3D : UserControl, IDisposable
                 _renderSettings.Material = viewModel.CurrentMaterial;
                 _renderSettings.EnableTransparency = viewModel.EnableTransparency;
 
-                // Update lighting settings to use material properties
-                _renderSettings.Lighting.AmbientColor = viewModel.CurrentMaterial.AmbientColor;
-                _renderSettings.Lighting.DiffuseColor = viewModel.CurrentMaterial.DiffuseColor;
-                _renderSettings.Lighting.SpecularColor = viewModel.CurrentMaterial.SpecularColor;
-                _renderSettings.Lighting.Shininess = viewModel.CurrentMaterial.Shininess;
+                // Apply enhanced lighting if lighting service is available
+                if (_lightingService != null && viewModel.IsLightingEnabled)
+                {
+                    _lightingService.ApplyLightingToRenderSettings(_renderSettings);
+                }
+                else
+                {
+                    // Fallback to legacy lighting settings using material properties
+                    _renderSettings.Lighting.AmbientColor = viewModel.CurrentMaterial.AmbientColor;
+                    _renderSettings.Lighting.DiffuseColor = viewModel.CurrentMaterial.DiffuseColor;
+                    _renderSettings.Lighting.SpecularColor = viewModel.CurrentMaterial.SpecularColor;
+                    _renderSettings.Lighting.Shininess = viewModel.CurrentMaterial.Shininess;
+                }
             }
 
             // Clear the screen

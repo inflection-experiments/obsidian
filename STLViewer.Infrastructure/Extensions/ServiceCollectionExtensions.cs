@@ -58,6 +58,7 @@ public static class ServiceCollectionExtensions
         // Graphics and rendering
         services.AddTransient<ICamera, Camera>();
         services.AddTransient<ICameraAnimationService, CameraAnimationService>();
+        services.AddSingleton<ILightingService, LightingService>();
         // Note: RendererFactory is static and doesn't need DI registration
 
         // Add pre-loaded model generators
