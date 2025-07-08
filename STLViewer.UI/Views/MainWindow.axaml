@@ -28,7 +28,23 @@
         <Menu Grid.Row="0">
             <MenuItem Header="_File">
                 <MenuItem Header="_Open STL..." Command="{Binding OpenFileCommand}"/>
-                <MenuItem Header="_Recent Files" IsEnabled="False"/>
+                <MenuItem Header="Open _Multiple Files..." Command="{Binding OpenMultipleFilesCommand}"/>
+                <MenuItem Header="_Recent Files" ItemsSource="{Binding RecentFiles}" IsEnabled="{Binding HasRecentFiles}">
+                    <MenuItem.ItemTemplate>
+                        <DataTemplate>
+                            <MenuItem Header="{Binding FileName}"
+                                      Command="{Binding $parent[Window].DataContext.OpenRecentFileCommand}"
+                                      CommandParameter="{Binding FilePath}"
+                                      ToolTip.Tip="{Binding FilePath}"/>
+                        </DataTemplate>
+                    </MenuItem.ItemTemplate>
+                    <MenuItem.Styles>
+                        <Style Selector="MenuItem:not(:empty) > MenuItem:last-child">
+                            <Setter Property="Margin" Value="0,0,0,10"/>
+                        </Style>
+                    </MenuItem.Styles>
+                    <MenuItem Header="Clear Recent Files" Command="{Binding ClearRecentFilesCommand}"/>
+                </MenuItem>
                 <Separator/>
                 <MenuItem Header="Load _Sample Cube" Command="{Binding LoadSampleCommand}"/>
                 <MenuItem Header="Pre-loaded Models">
@@ -102,10 +118,44 @@
             </Grid.ColumnDefinitions>
 
             <!-- 3D Viewport -->
-            <controls:Viewport3D Grid.Column="0"
-                                 Model="{Binding Viewport.CurrentModel}"
-                                 ShowControls="{Binding Viewport.ShowControls}"
-                                 x:Name="MainViewport"/>
+            <Grid Grid.Column="0">
+                <controls:Viewport3D Model="{Binding Viewport.CurrentModel}"
+                                     ShowControls="{Binding Viewport.ShowControls}"
+                                     x:Name="MainViewport"
+                                     AllowDrop="True"
+                                     DragOver="OnDragOver"
+                                     Drop="OnDrop"/>
+
+                <!-- Drag and Drop Overlay -->
+                <Border x:Name="DragDropOverlay"
+                        Background="#80000000"
+                        IsVisible="False"
+                        ZIndex="100">
+                    <Border Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                            BorderBrush="{DynamicResource SystemAccentColor}"
+                            BorderThickness="3"
+                            CornerRadius="10"
+                            Margin="50"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Vertical"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="10"
+                                    Margin="30">
+                            <TextBlock Text="📁" FontSize="48" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Drop STL files here"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"/>
+                            <TextBlock Text="Supports single files or multiple files at once"
+                                       FontSize="12"
+                                       Foreground="Gray"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </Border>
+            </Grid>
 
             <!-- Splitter -->
             <GridSplitter Grid.Column="1"
@@ -136,9 +186,67 @@
                                         Command="{Binding OpenFileCommand}"
                                         HorizontalAlignment="Stretch"/>
 
+                                <Button Content="Open Multiple Files..."
+                                        Command="{Binding OpenMultipleFilesCommand}"
+                                        HorizontalAlignment="Stretch"/>
+
                                 <Button Content="Reload"
                                         Command="{Binding Viewport.ReloadFileCommand}"
                                         HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </Expander>
+
+                        <!-- Recent Files -->
+                        <Expander Header="Recent Files" IsExpanded="True" IsVisible="{Binding HasRecentFiles}">
+                            <StackPanel Spacing="4">
+                                <ItemsControl ItemsSource="{Binding RecentFiles}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="Transparent"
+                                                    Margin="0,1"
+                                                    CornerRadius="3">
+                                                <Border.Styles>
+                                                    <Style Selector="Border:pointerover">
+                                                        <Setter Property="Background" Value="{DynamicResource SystemControlHighlightListLowBrush}"/>
+                                                    </Style>
+                                                </Border.Styles>
+                                                <Button Background="Transparent"
+                                                        BorderThickness="0"
+                                                        HorizontalAlignment="Stretch"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        Command="{Binding $parent[Window].DataContext.OpenRecentFileCommand}"
+                                                        CommandParameter="{Binding FilePath}"
+                                                        Padding="5,3">
+                                                    <StackPanel Orientation="Vertical" Spacing="2">
+                                                        <TextBlock Text="{Binding FileNameWithoutExtension}"
+                                                                   FontWeight="SemiBold"
+                                                                   FontSize="11"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <StackPanel Orientation="Horizontal" Spacing="10">
+                                                            <TextBlock Text="{Binding FormattedSize}"
+                                                                       FontSize="9"
+                                                                       Foreground="Gray"/>
+                                                            <TextBlock Text="{Binding Format}"
+                                                                       FontSize="9"
+                                                                       Foreground="Gray"/>
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding FilePath}"
+                                                                   FontSize="9"
+                                                                   Foreground="Gray"
+                                                                   TextTrimming="CharacterEllipsis"
+                                                                   ToolTip.Tip="{Binding FilePath}"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <Button Content="Clear Recent Files"
+                                        Command="{Binding ClearRecentFilesCommand}"
+                                        HorizontalAlignment="Stretch"
+                                        FontSize="10"
+                                        Margin="0,5,0,0"/>
                             </StackPanel>
                         </Expander>
 

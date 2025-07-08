@@ -9,6 +9,8 @@ using STLViewer.Infrastructure.Parsers;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using STLViewer.Math;
+using Avalonia.Input;
+using System.Linq;
 
 namespace STLViewer.UI.Views;
 
@@ -120,6 +122,81 @@ public partial class MainWindow : Window
         catch
         {
             return false;
+        }
+    }
+
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        // Check if the dragged data contains files
+        if (e.Data.Contains(DataFormats.Files))
+        {
+            var files = e.Data.GetFiles();
+            if (files?.Any(f => f.Name.EndsWith(".stl", StringComparison.OrdinalIgnoreCase)) == true)
+            {
+                e.DragEffects = DragDropEffects.Copy;
+                ShowDragDropOverlay(true);
+            }
+            else
+            {
+                e.DragEffects = DragDropEffects.None;
+                ShowDragDropOverlay(false);
+            }
+        }
+        else
+        {
+            e.DragEffects = DragDropEffects.None;
+            ShowDragDropOverlay(false);
+        }
+    }
+
+    private async void OnDrop(object? sender, DragEventArgs e)
+    {
+        ShowDragDropOverlay(false);
+
+        if (!e.Data.Contains(DataFormats.Files))
+            return;
+
+        var files = e.Data.GetFiles();
+        if (files == null)
+            return;
+
+        var stlFiles = files
+            .Where(f => f.Name.EndsWith(".stl", StringComparison.OrdinalIgnoreCase))
+            .Select(f => f.Path.LocalPath)
+            .ToList();
+
+        if (!stlFiles.Any())
+            return;
+
+        if (DataContext is not ViewModels.MainWindowViewModel viewModel)
+            return;
+
+        try
+        {
+            if (stlFiles.Count == 1)
+            {
+                // Single file - use existing command
+                await viewModel.LoadFileAsync(stlFiles[0]);
+            }
+            else
+            {
+                // Multiple files - use batch loading
+                await viewModel.LoadMultipleFilesAsync(stlFiles);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error - in production you'd show a proper error dialog
+            Console.WriteLine($"Error loading dropped files: {ex.Message}");
+        }
+    }
+
+    private void ShowDragDropOverlay(bool show)
+    {
+        var overlay = this.FindControl<Border>("DragDropOverlay");
+        if (overlay != null)
+        {
+            overlay.IsVisible = show;
         }
     }
 }

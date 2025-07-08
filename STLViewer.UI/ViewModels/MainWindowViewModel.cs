@@ -8,7 +8,11 @@ using STLViewer.Core.Interfaces;
 using STLViewer.Infrastructure.Parsers;
 using MediatR;
 using STLViewer.Application.Commands;
+using STLViewer.Application.Queries;
+using STLViewer.Domain.ValueObjects;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace STLViewer.UI.ViewModels;
 
@@ -16,22 +20,31 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly ISTLParser _stlParser;
     private readonly IMediator _mediator;
+    private readonly IFileManagementService? _fileManagementService;
+    private ObservableCollection<FileInfo> _recentFiles = new();
 
     public MainWindowViewModel()
     {
         // For design-time support
         _stlParser = new STLParserService();
         _mediator = null!; // Will be null for design-time
+        _fileManagementService = null;
         Viewport = new Viewport3DViewModel(_stlParser);
         InitializeCommands();
     }
 
-    public MainWindowViewModel(ISTLParser stlParser, IMediator mediator)
+    public MainWindowViewModel(ISTLParser stlParser, IMediator mediator, IFileManagementService fileManagementService)
     {
         _stlParser = stlParser ?? throw new ArgumentNullException(nameof(stlParser));
         _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+        _fileManagementService = fileManagementService ?? throw new ArgumentNullException(nameof(fileManagementService));
         Viewport = new Viewport3DViewModel(_stlParser);
+
+        // Subscribe to recent files changes
+        _fileManagementService.RecentFilesChanged += OnRecentFilesChanged;
+
         InitializeCommands();
+        _ = LoadRecentFilesAsync();
     }
 
     /// <summary>
@@ -43,6 +56,21 @@ public partial class MainWindowViewModel : ViewModelBase
     /// Command to open a file dialog and load an STL file.
     /// </summary>
     public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> OpenFileCommand { get; private set; } = null!;
+
+    /// <summary>
+    /// Command to open multiple files dialog and load STL files.
+    /// </summary>
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> OpenMultipleFilesCommand { get; private set; } = null!;
+
+    /// <summary>
+    /// Command to open a recent file.
+    /// </summary>
+    public ReactiveCommand<string, System.Reactive.Unit> OpenRecentFileCommand { get; private set; } = null!;
+
+    /// <summary>
+    /// Command to clear the recent files list.
+    /// </summary>
+    public ReactiveCommand<System.Reactive.Unit, System.Reactive.Unit> ClearRecentFilesCommand { get; private set; } = null!;
 
     /// <summary>
     /// Command to load a sample cube for demonstration.
@@ -167,10 +195,23 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </summary>
     public bool IsBackfaceCullingEnabled => Viewport.IsBackfaceCullingEnabled;
 
+    /// <summary>
+    /// Gets the collection of recent files.
+    /// </summary>
+    public ObservableCollection<FileInfo> RecentFiles => _recentFiles;
+
+    /// <summary>
+    /// Gets whether there are any recent files.
+    /// </summary>
+    public bool HasRecentFiles => _recentFiles.Count > 0;
+
     private void InitializeCommands()
     {
         // Initialize commands
         OpenFileCommand = ReactiveCommand.CreateFromTask(OpenFileAsync);
+        OpenMultipleFilesCommand = ReactiveCommand.CreateFromTask(OpenMultipleFilesAsync);
+        OpenRecentFileCommand = ReactiveCommand.CreateFromTask<string>(OpenRecentFileAsync);
+        ClearRecentFilesCommand = ReactiveCommand.CreateFromTask(ClearRecentFilesAsync);
         LoadSampleCommand = ReactiveCommand.Create(LoadSample);
         LoadFighterPlaneCommand = ReactiveCommand.CreateFromTask(LoadFighterPlaneAsync);
         ResetCameraCommand = ReactiveCommand.Create(ResetCamera);
@@ -591,5 +632,187 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Viewport.StatusMessage = $"Error stopping flight path animation: {ex.Message}";
         }
+    }
+
+    private async Task OpenMultipleFilesAsync()
+    {
+        try
+        {
+            if (Avalonia.Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                var files = await desktop.MainWindow!.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+                {
+                    Title = "Open STL Files",
+                    AllowMultiple = true,
+                    FileTypeFilter = new[]
+                    {
+                        new FilePickerFileType("STL Files")
+                        {
+                            Patterns = new[] { "*.stl" }
+                        }
+                    }
+                });
+
+                if (files.Count > 0)
+                {
+                    var filePaths = files.Select(f => f.Path.LocalPath).ToList();
+                    await LoadMultipleFilesAsync(filePaths);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Viewport.StatusMessage = $"Error opening files: {ex.Message}";
+        }
+    }
+
+    private async Task OpenRecentFileAsync(string filePath)
+    {
+        try
+        {
+            await LoadFileAsync(filePath);
+        }
+        catch (Exception ex)
+        {
+            Viewport.StatusMessage = $"Error loading recent file: {ex.Message}";
+        }
+    }
+
+    private async Task ClearRecentFilesAsync()
+    {
+        try
+        {
+            if (_mediator != null)
+            {
+                await _mediator.Send(new ClearRecentFilesCommand());
+            }
+        }
+        catch (Exception ex)
+        {
+            Viewport.StatusMessage = $"Error clearing recent files: {ex.Message}";
+        }
+    }
+
+    public async Task LoadFileAsync(string filePath)
+    {
+        try
+        {
+            if (_mediator != null)
+            {
+                var command = new LoadSTLCommand { FilePath = filePath };
+                var result = await _mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    Viewport.LoadModel(result.Value!);
+                    Viewport.StatusMessage = $"Loaded: {System.IO.Path.GetFileName(filePath)}";
+                }
+                else
+                {
+                    Viewport.StatusMessage = $"Failed to load file: {result.Error}";
+                }
+            }
+            else
+            {
+                // Fallback for design-time
+                var result = await _stlParser.ParseAsync(filePath);
+                if (result.IsSuccess)
+                {
+                    Viewport.LoadModel(result.Value!);
+                    Viewport.StatusMessage = $"Loaded: {System.IO.Path.GetFileName(filePath)}";
+                }
+                else
+                {
+                    Viewport.StatusMessage = $"Failed to load file: {result.Error}";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Viewport.StatusMessage = $"Error loading file: {ex.Message}";
+        }
+    }
+
+    public async Task LoadMultipleFilesAsync(IEnumerable<string> filePaths)
+    {
+        try
+        {
+            if (_mediator != null)
+            {
+                var command = new LoadFilesCommand(filePaths);
+                var result = await _mediator.Send(command);
+
+                if (result.IsSuccess)
+                {
+                    var models = result.Value!;
+                    if (models.Count > 0)
+                    {
+                        // For now, load the first model in the main viewport
+                        // In the future, this could be enhanced to support multiple models
+                        Viewport.LoadModel(models.First());
+                        Viewport.StatusMessage = $"Loaded {models.Count} files. Displaying: {System.IO.Path.GetFileName(models.First().Metadata.FileName)}";
+                    }
+                    else
+                    {
+                        Viewport.StatusMessage = "No files were loaded successfully.";
+                    }
+                }
+                else
+                {
+                    Viewport.StatusMessage = $"Failed to load files: {result.Error}";
+                }
+            }
+            else
+            {
+                // Fallback for design-time - just load the first file
+                var firstPath = filePaths.FirstOrDefault();
+                if (firstPath != null)
+                {
+                    await LoadFileAsync(firstPath);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Viewport.StatusMessage = $"Error loading files: {ex.Message}";
+        }
+    }
+
+    private async Task LoadRecentFilesAsync()
+    {
+        try
+        {
+            if (_mediator != null)
+            {
+                var recentFiles = await _mediator.Send(new GetRecentFilesQuery(refreshStatus: false));
+
+                _recentFiles.Clear();
+                foreach (var file in recentFiles)
+                {
+                    _recentFiles.Add(file);
+                }
+
+                this.RaisePropertyChanged(nameof(HasRecentFiles));
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't show to user as this is a background operation
+            System.Diagnostics.Debug.WriteLine($"Error loading recent files: {ex.Message}");
+        }
+    }
+
+    private void OnRecentFilesChanged(object? sender, IReadOnlyList<FileInfo> recentFiles)
+    {
+        // Update the observable collection on the UI thread
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            _recentFiles.Clear();
+            foreach (var file in recentFiles)
+            {
+                _recentFiles.Add(file);
+            }
+            this.RaisePropertyChanged(nameof(HasRecentFiles));
+        });
     }
 }

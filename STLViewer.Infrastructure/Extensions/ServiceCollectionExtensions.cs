@@ -55,6 +55,8 @@ public static class ServiceCollectionExtensions
 
         // Add core services
         services.AddScoped<ISTLParser, STLParserService>();
+        services.AddScoped<IFileManagementService, FileManagementService>();
+
         // Graphics and rendering
         services.AddTransient<ICamera, Camera>();
         services.AddTransient<ICameraAnimationService, CameraAnimationService>();
