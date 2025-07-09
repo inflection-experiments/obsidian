@@ -88,27 +88,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>
-    /// Adds application layer services to the dependency injection container.
-    /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configuration">The application configuration.</param>
-    /// <returns>The service collection for chaining.</returns>
-    public static IServiceCollection AddApplicationServices(
-        this IServiceCollection services,
-        IConfiguration configuration)
-    {
-        // Add AutoMapper
-        services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
-        // Add MediatR
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-
-        // Add FluentValidation
-        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
-
-        return services;
-    }
 
     /// <summary>
     /// Adds configuration services to the dependency injection container.

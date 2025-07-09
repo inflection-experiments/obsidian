@@ -31,6 +31,7 @@ public partial class Viewport3D : UserControl
 {
     // OpenGL
     private OpenGlControl? _openGlControl;
+    private VulkanControl? _vulkanControl;
     private IRenderer? _renderer;
     private ICamera? _camera;
     private STLModel? _currentModel;
@@ -72,7 +73,22 @@ public partial class Viewport3D : UserControl
         InitializeComponent();
         InitializeRenderSettings();
         SetupEventHandlers();
-        CreateOpenGLControl();
+
+        // Check if Vulkan is available, fallback to OpenGL if not
+        if (RendererFactory.IsVulkanAvailable())
+        {
+            UpdateStatusText("Vulkan available - attempting to initialize Vulkan renderer");
+            System.Diagnostics.Debug.WriteLine("Vulkan is available, creating Vulkan control");
+            Console.WriteLine("🔥 VULKAN DETECTED! Initializing Vulkan renderer...");
+            CreateVulkanControl();
+        }
+        else
+        {
+            UpdateStatusText("Vulkan not available - falling back to OpenGL");
+            System.Diagnostics.Debug.WriteLine("Vulkan not available, falling back to OpenGL");
+            Console.WriteLine("⚠️  Vulkan not available, falling back to OpenGL");
+            CreateOpenGLControl();
+        }
 
         // Try to get lighting service from service locator (fallback for design-time)
         try
@@ -176,6 +192,51 @@ public partial class Viewport3D : UserControl
             };
     }
 
+    private void CreateVulkanControl()
+    {
+        try
+        {
+            UpdateStatusText("Initializing Vulkan...");
+            System.Diagnostics.Debug.WriteLine("CreateVulkanControl: Starting Vulkan initialization");
+
+            // Create the new VulkanControl
+            var vulkanControl = new VulkanControl();
+
+            // Set up event handlers
+            vulkanControl.StatusChanged += UpdateStatusText;
+            vulkanControl.RendererInfoChanged += UpdateRendererText;
+
+            vulkanControl.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch;
+            vulkanControl.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch;
+
+            // Replace the rendering surface
+            var renderingSurface = this.FindControl<Border>("RenderingSurface");
+            if (renderingSurface != null)
+            {
+                renderingSurface.Child = vulkanControl;
+            }
+
+            // Store reference to the Vulkan control
+            _vulkanControl = vulkanControl;
+
+            HideLoadingText();
+
+            System.Diagnostics.Debug.WriteLine("CreateVulkanControl: Vulkan control creation complete");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"CreateVulkanControl: Failed to initialize Vulkan: {ex}");
+            UpdateStatusText($"Vulkan initialization failed: {ex.Message}");
+            UpdateRendererText("Failed");
+            Console.WriteLine($"❌ Vulkan initialization failed: {ex.Message}");
+
+            // Fallback to OpenGL
+            System.Diagnostics.Debug.WriteLine("CreateVulkanControl: Falling back to OpenGL");
+            Console.WriteLine("🔄 Falling back to OpenGL renderer...");
+            CreateOpenGLControl();
+        }
+    }
+
     private void CreateOpenGLControl()
     {
         // Create the custom OpenGL control
@@ -206,39 +267,64 @@ public partial class Viewport3D : UserControl
     {
         try
         {
+            UpdateStatusText("Initializing OpenGL...");
+            System.Diagnostics.Debug.WriteLine("OnOpenGlInit: Starting initialization");
+
             // Create OpenGL wrapper using Avalonia's GL interface
+            System.Diagnostics.Debug.WriteLine("OnOpenGlInit: Creating Silk.NET GL wrapper");
             var silkGl = GL.GetApi(gl.GetProcAddress);
+            System.Diagnostics.Debug.WriteLine("OnOpenGlInit: Silk.NET GL wrapper created successfully");
 
             // Create renderer
+            System.Diagnostics.Debug.WriteLine("OnOpenGlInit: Creating OpenGL renderer");
             _renderer = RendererFactory.CreateOpenGLRenderer(silkGl);
+            System.Diagnostics.Debug.WriteLine("OnOpenGlInit: OpenGL renderer created successfully");
 
             // Create camera
+            System.Diagnostics.Debug.WriteLine("OnOpenGlInit: Creating camera");
             _camera = new Infrastructure.Graphics.Camera();
             _camera.SetPerspective(45.0f, 1.0f, 0.1f, 1000.0f);
             _camera.SetPosition(new Vector3(0, 0, 5));
             _camera.SetTarget(Vector3.Zero);
             _camera.SetUp(Vector3.UnitY);
+            System.Diagnostics.Debug.WriteLine("OnOpenGlInit: Camera created successfully");
 
-            // Initialize renderer
-            Task.Run(async () =>
+            // Initialize renderer synchronously on the UI thread
+            try
             {
                 var width = (int)(_openGlControl?.Bounds.Width ?? 800);
                 var height = (int)(_openGlControl?.Bounds.Height ?? 600);
-                await _renderer.InitializeAsync(width, height);
-                _renderer.SetCamera(_camera);
+                System.Diagnostics.Debug.WriteLine($"OnOpenGlInit: Initializing renderer with size {width}x{height}");
 
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    UpdateStatusText("Renderer initialized");
-                    UpdateRendererText(_renderer.GetInfo().Name);
-                    HideLoadingText();
-                    StartRenderLoop();
-                });
-            });
+                var initTask = _renderer.InitializeAsync(width, height);
+                initTask.Wait(); // Wait for completion
+
+                System.Diagnostics.Debug.WriteLine("OnOpenGlInit: Renderer initialized successfully");
+                _renderer.SetCamera(_camera);
+                System.Diagnostics.Debug.WriteLine("OnOpenGlInit: Camera set on renderer");
+
+                var rendererInfo = _renderer.GetInfo();
+                System.Diagnostics.Debug.WriteLine($"OnOpenGlInit: Renderer info - {rendererInfo.Name}, API: {rendererInfo.ApiVersion}, Device: {rendererInfo.DeviceName}");
+
+                UpdateStatusText("Renderer initialized successfully");
+                UpdateRendererText(rendererInfo.Name);
+                HideLoadingText();
+                StartRenderLoop();
+
+                System.Diagnostics.Debug.WriteLine("OnOpenGlInit: Initialization complete");
+            }
+            catch (Exception initEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"OnOpenGlInit: Renderer initialization failed: {initEx}");
+                UpdateStatusText($"Renderer init failed: {initEx.Message}");
+                UpdateRendererText("Failed");
+            }
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"OnOpenGlInit: Failed to initialize OpenGL: {ex}");
             UpdateStatusText($"Failed to initialize OpenGL: {ex.Message}");
+            UpdateRendererText("None");
         }
     }
 
@@ -255,29 +341,19 @@ public partial class Viewport3D : UserControl
             var aspectRatio = (float)(_openGlControl?.Bounds.Width / _openGlControl?.Bounds.Height ?? 1.0);
             _camera.SetPerspective(45.0f, aspectRatio, 0.1f, 1000.0f);
 
-            // Update render settings from DataContext if available
-            if (DataContext is ViewModels.Viewport3DViewModel viewModel)
-            {
-                _renderSettings.RenderMode = viewModel.RenderMode;
-                _renderSettings.Wireframe = viewModel.RenderMode == Core.Interfaces.RenderMode.Wireframe;
-                _renderSettings.Lighting.Enabled = viewModel.IsLightingEnabled;
-                _renderSettings.BackfaceCulling = viewModel.IsBackfaceCullingEnabled;
-                _renderSettings.Material = viewModel.CurrentMaterial;
-                _renderSettings.EnableTransparency = viewModel.EnableTransparency;
+            // Use default render settings (for now)
+            // In a complete implementation, these would be synchronized with the ViewModel
+            _renderSettings.RenderMode = Core.Interfaces.RenderMode.Surface;
+            _renderSettings.Wireframe = false;
+            _renderSettings.Lighting.Enabled = true;
+            _renderSettings.BackfaceCulling = true;
+            _renderSettings.Material = Core.Interfaces.Material.FromPreset(Core.Interfaces.MaterialPreset.Default);
+            _renderSettings.EnableTransparency = false;
 
-                // Apply enhanced lighting if lighting service is available
-                if (_lightingService != null && viewModel.IsLightingEnabled)
-                {
-                    _lightingService.ApplyLightingToRenderSettings(_renderSettings);
-                }
-                else
-                {
-                    // Fallback to legacy lighting settings using material properties
-                    _renderSettings.Lighting.AmbientColor = viewModel.CurrentMaterial.AmbientColor;
-                    _renderSettings.Lighting.DiffuseColor = viewModel.CurrentMaterial.DiffuseColor;
-                    _renderSettings.Lighting.SpecularColor = viewModel.CurrentMaterial.SpecularColor;
-                    _renderSettings.Lighting.Shininess = viewModel.CurrentMaterial.Shininess;
-                }
+            // Apply enhanced lighting if lighting service is available
+            if (_lightingService != null && _renderSettings.Lighting.Enabled)
+            {
+                _lightingService.ApplyLightingToRenderSettings(_renderSettings);
             }
 
             // Clear the screen
@@ -286,7 +362,12 @@ public partial class Viewport3D : UserControl
             // Render the model if available
             if (_currentModel != null)
             {
+                System.Diagnostics.Debug.WriteLine($"Rendering model with {_currentModel.TriangleCount} triangles");
                 _renderer.Render(_currentModel, _renderSettings);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("No model to render");
             }
 
             // Present the frame
@@ -295,6 +376,7 @@ public partial class Viewport3D : UserControl
         catch (Exception ex)
         {
             UpdateStatusText($"Render error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Render error: {ex.Message}");
         }
 
         _frameTimer.Stop();
@@ -410,17 +492,29 @@ public partial class Viewport3D : UserControl
         {
             UpdateTriangleCount(model.TriangleCount);
             UpdateStatusText($"Model loaded: {model.TriangleCount} triangles");
+            System.Diagnostics.Debug.WriteLine($"Viewport3D: Model loaded with {model.TriangleCount} triangles");
 
             // Auto-frame the model
             if (_camera != null)
             {
                 _camera.FrameToBounds(model.BoundingBox);
+                System.Diagnostics.Debug.WriteLine($"Viewport3D: Camera framed to bounds: {model.BoundingBox}");
+            }
+
+            // If using Vulkan, load the model into the Vulkan control
+            if (_vulkanControl != null)
+            {
+                // For now, we'll use a placeholder file path
+                // In a real implementation, you'd need to store the original file path
+                System.Diagnostics.Debug.WriteLine("Viewport3D: Loading model into Vulkan control");
+                // _vulkanControl.LoadSTLModel(model.FilePath); // Would need to store file path
             }
         }
         else
         {
             UpdateTriangleCount(0);
             UpdateStatusText("No model loaded");
+            System.Diagnostics.Debug.WriteLine("Viewport3D: No model loaded");
         }
 
         _openGlControl?.RequestNextFrameRendering();
@@ -437,6 +531,25 @@ public partial class Viewport3D : UserControl
 
         if (renderSettingsOverlay != null)
             renderSettingsOverlay.IsVisible = showControls;
+    }
+
+    private void StartVulkanRenderLoop()
+    {
+        // Start render timer (60 FPS target)
+        _renderTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(1000.0 / 60.0)
+        };
+        _renderTimer.Tick += (_, _) => VulkanRender();
+        _renderTimer.Start();
+
+        // Start FPS timer
+        _fpsTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(1)
+        };
+        _fpsTimer.Tick += (_, _) => UpdateFpsDisplay();
+        _fpsTimer.Start();
     }
 
     private void StartRenderLoop()
@@ -456,6 +569,52 @@ public partial class Viewport3D : UserControl
         };
         _fpsTimer.Tick += (_, _) => UpdateFpsDisplay();
         _fpsTimer.Start();
+    }
+
+    private void VulkanRender()
+    {
+        if (_renderer == null || _camera == null)
+            return;
+
+        _frameTimer.Restart();
+
+        try
+        {
+            // Use default render settings
+            _renderSettings.RenderMode = Core.Interfaces.RenderMode.Surface;
+            _renderSettings.Wireframe = false;
+            _renderSettings.Lighting.Enabled = true;
+            _renderSettings.BackfaceCulling = true;
+            _renderSettings.Material = Core.Interfaces.Material.FromPreset(Core.Interfaces.MaterialPreset.Default);
+            _renderSettings.EnableTransparency = false;
+
+            // Apply enhanced lighting if lighting service is available
+            if (_lightingService != null && _renderSettings.Lighting.Enabled)
+            {
+                _lightingService.ApplyLightingToRenderSettings(_renderSettings);
+            }
+
+            // Clear the screen
+            _renderer.Clear(_renderSettings.BackgroundColor);
+
+            // Render the model if available
+            if (_currentModel != null)
+            {
+                System.Diagnostics.Debug.WriteLine($"Vulkan rendering model with {_currentModel.TriangleCount} triangles");
+                _renderer.Render(_currentModel, _renderSettings);
+            }
+
+            // Present the frame
+            _renderer.Present();
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText($"Vulkan render error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Vulkan render error: {ex.Message}");
+        }
+
+        _frameTimer.Stop();
+        UpdateFrameTime(_frameTimer.Elapsed.TotalMilliseconds);
     }
 
     private void UpdateFrameTime(double frameTimeMs)
@@ -502,7 +661,14 @@ public partial class Viewport3D : UserControl
     {
         var rendererText = this.FindControl<TextBlock>("RendererText");
         if (rendererText != null)
+        {
             rendererText.Text = $"Renderer: {text}";
+            System.Diagnostics.Debug.WriteLine($"UpdateRendererText: {text}");
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine("UpdateRendererText: RendererText control not found");
+        }
     }
 
     private void HideLoadingText()

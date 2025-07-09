@@ -37,7 +37,7 @@ public partial class MainWindowViewModel : ViewModelBase
         InitializeCommands();
     }
 
-    public MainWindowViewModel(ISTLParser stlParser, IMediator mediator, IFileManagementService fileManagementService, ISceneManager sceneManager)
+        public MainWindowViewModel(ISTLParser stlParser, IMediator mediator, IFileManagementService fileManagementService, ISceneManager sceneManager)
     {
         _stlParser = stlParser ?? throw new ArgumentNullException(nameof(stlParser));
         _mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
@@ -52,11 +52,15 @@ public partial class MainWindowViewModel : ViewModelBase
         _fileManagementService.RecentFilesChanged += OnRecentFilesChanged;
 
         InitializeCommands();
+
         // Load recent files
         _ = LoadRecentFilesAsync();
 
         // Create a default scene
         CreateDefaultSceneAsync();
+
+        // Load a sample model on startup so the viewport shows something immediately
+        LoadSampleOnStartup();
     }
 
     /// <summary>
@@ -849,6 +853,23 @@ public partial class MainWindowViewModel : ViewModelBase
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error creating default scene: {ex.Message}");
+        }
+    }
+
+    private async void LoadSampleOnStartup()
+    {
+        try
+        {
+            // Use the built-in sample model generation
+            Viewport.StatusMessage = "Loading sample model...";
+            await Task.Delay(100); // Small delay to show the loading message
+
+            Viewport.SetSampleModel();
+            Viewport.StatusMessage = "Sample cube loaded - ready to use!";
+        }
+        catch (Exception ex)
+        {
+            Viewport.StatusMessage = $"Error loading sample on startup: {ex.Message}";
         }
     }
 }

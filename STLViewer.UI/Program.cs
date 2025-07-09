@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using STLViewer.Infrastructure.Extensions;
+using STLViewer.Application.Extensions;
 using STLViewer.UI.Extensions;
 using STLViewer.UI.ViewModels;
 using STLViewer.UI.Views;
@@ -79,7 +80,7 @@ public class Program
             {
                 // Add all application services
                 services.AddInfrastructureServices(context.Configuration);
-                services.AddApplicationServices(context.Configuration);
+                services.AddApplicationServices();
                 services.AddUIServices(context.Configuration);
                 services.AddConfiguration(context.Configuration);
             })

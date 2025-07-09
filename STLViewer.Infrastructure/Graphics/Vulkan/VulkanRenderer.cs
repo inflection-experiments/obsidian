@@ -3,6 +3,8 @@ using STLViewer.Core.Interfaces;
 using STLViewer.Domain.Entities;
 using STLViewer.Math;
 using System.Runtime.InteropServices;
+using Veldrid.SPIRV;
+using Veldrid;
 
 namespace STLViewer.Infrastructure.Graphics.Vulkan;
 
@@ -19,7 +21,7 @@ public unsafe class VulkanRenderer : IRenderer
     private CommandPool _commandPool;
     private CommandBuffer _commandBuffer;
     private RenderPass _renderPass;
-    private Pipeline _graphicsPipeline;
+    private Silk.NET.Vulkan.Pipeline _graphicsPipeline;
     private PipelineLayout _pipelineLayout;
     private Silk.NET.Vulkan.Buffer _vertexBuffer;
     private DeviceMemory _vertexBufferMemory;
@@ -422,12 +424,12 @@ public unsafe class VulkanRenderer : IRenderer
         var inputAssembly = new PipelineInputAssemblyStateCreateInfo
         {
             SType = StructureType.PipelineInputAssemblyStateCreateInfo,
-            Topology = PrimitiveTopology.TriangleList,
+            Topology = Silk.NET.Vulkan.PrimitiveTopology.TriangleList,
             PrimitiveRestartEnable = false
         };
 
         // Viewport
-        var viewport = new Viewport
+                    var viewport = new Silk.NET.Vulkan.Viewport
         {
             X = 0.0f,
             Y = 0.0f,
@@ -461,7 +463,7 @@ public unsafe class VulkanRenderer : IRenderer
             PolygonMode = PolygonMode.Fill,
             LineWidth = 1.0f,
             CullMode = CullModeFlags.BackBit,
-            FrontFace = FrontFace.CounterClockwise,
+            FrontFace = Silk.NET.Vulkan.FrontFace.CounterClockwise,
             DepthBiasEnable = false
         };
 
@@ -872,18 +874,84 @@ public unsafe class VulkanRenderer : IRenderer
         return attributes;
     }
 
-    private static byte[] GetVertexShaderSpirV()
+        private static byte[] GetVertexShaderSpirV()
     {
-        // In a real implementation, this would load compiled SPIR-V bytecode
-        // For now, return a minimal valid SPIR-V header
-        return new byte[20]; // Minimal valid SPIR-V magic number and header
+        var vertexShaderGlsl = @"
+#version 450
+
+layout(binding = 0) uniform UniformBufferObject {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+} ubo;
+
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inNormal;
+
+layout(location = 0) out vec3 fragNormal;
+layout(location = 1) out vec3 fragPos;
+
+void main() {
+    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
+    fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
+    fragPos = vec3(ubo.model * vec4(inPosition, 1.0));
+}
+";
+
+        var vertexShaderDescription = new ShaderDescription(
+            ShaderStages.Vertex,
+            System.Text.Encoding.UTF8.GetBytes(vertexShaderGlsl),
+            "main"
+        );
+
+        var compilationResult = SpirvCompilation.CompileGlslToSpirv(
+            "vertex.glsl",
+            vertexShaderGlsl,
+            ShaderStages.Vertex,
+            new GlslCompileOptions()
+        );
+
+        return compilationResult.SpirvBytes;
     }
 
     private static byte[] GetFragmentShaderSpirV()
     {
-        // In a real implementation, this would load compiled SPIR-V bytecode
-        // For now, return a minimal valid SPIR-V header
-        return new byte[20]; // Minimal valid SPIR-V magic number and header
+        var fragmentShaderGlsl = @"
+#version 450
+
+layout(location = 0) in vec3 fragNormal;
+layout(location = 1) in vec3 fragPos;
+
+layout(location = 0) out vec4 outColor;
+
+void main() {
+    // Simple lighting calculation
+    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+    vec3 normal = normalize(fragNormal);
+    float diff = max(dot(normal, lightDir), 0.0);
+
+    vec3 ambient = vec3(0.1, 0.1, 0.1);
+    vec3 diffuse = diff * vec3(0.8, 0.8, 0.8);
+    vec3 color = ambient + diffuse;
+
+    outColor = vec4(color, 1.0);
+}
+";
+
+        var fragmentShaderDescription = new ShaderDescription(
+            ShaderStages.Fragment,
+            System.Text.Encoding.UTF8.GetBytes(fragmentShaderGlsl),
+            "main"
+        );
+
+        var compilationResult = SpirvCompilation.CompileGlslToSpirv(
+            "fragment.glsl",
+            fragmentShaderGlsl,
+            ShaderStages.Fragment,
+            new GlslCompileOptions()
+        );
+
+        return compilationResult.SpirvBytes;
     }
 
     private static string GetVendorName(uint vendorId)

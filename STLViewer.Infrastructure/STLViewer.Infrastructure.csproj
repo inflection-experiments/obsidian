@@ -9,11 +9,12 @@
 
   <ItemGroup>
     <!-- Silk.NET for OpenGL and Vulkan -->
+    <PackageReference Include="Silk.NET.Core" Version="2.22.0" />
     <PackageReference Include="Silk.NET.OpenGL" Version="2.20.0" />
     <PackageReference Include="Silk.NET.Vulkan" Version="2.20.0" />
     <PackageReference Include="Silk.NET.Windowing" Version="2.20.0" />
     <PackageReference Include="Silk.NET.Input" Version="2.20.0" />
-    <PackageReference Include="Silk.NET.Maths" Version="2.20.0" />
+    <PackageReference Include="Silk.NET.Maths" Version="2.22.0" />
 
     <!-- HTTP and API -->
     <PackageReference Include="Refit" Version="7.2.22" />
@@ -43,6 +44,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Veldrid.SPIRV" Version="1.0.15" />
   </ItemGroup>
 
   <ItemGroup>

@@ -49,7 +49,7 @@ public static class RendererFactory
         }
     }
 
-    /// <summary>
+        /// <summary>
     /// Checks if Vulkan is available on the current system.
     /// </summary>
     /// <returns>True if Vulkan is available; otherwise, false.</returns>
@@ -57,19 +57,36 @@ public static class RendererFactory
     {
         try
         {
+            Console.WriteLine("🔍 Checking Vulkan availability...");
+
             // Try to create a Vulkan instance to check availability
             var vk = Vk.GetApi();
-            if (vk == null) return false;
+            if (vk == null)
+            {
+                Console.WriteLine("❌ Failed to get Vulkan API");
+                return false;
+            }
 
             // Try to enumerate instance extensions as a basic check
             uint extensionCount = 0;
             var result = vk.EnumerateInstanceExtensionProperties((byte*)null, &extensionCount, null);
-            vk.Dispose();
 
-            return result == Result.Success;
+            if (result == Result.Success && extensionCount > 0)
+            {
+                Console.WriteLine($"✅ Vulkan available with {extensionCount} extensions");
+                vk.Dispose();
+                return true;
+            }
+            else
+            {
+                Console.WriteLine($"❌ Vulkan check failed: {result}, extensions: {extensionCount}");
+                vk.Dispose();
+                return false;
+            }
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"❌ Vulkan availability check failed: {ex.Message}");
             return false;
         }
     }

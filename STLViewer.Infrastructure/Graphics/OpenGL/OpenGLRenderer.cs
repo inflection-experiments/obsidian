@@ -457,16 +457,17 @@ public unsafe class OpenGLRenderer : IRenderer
     private static string GetVertexShaderSource()
     {
         return @"
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
+#version 110
+
+attribute vec3 aPos;
+attribute vec3 aNormal;
 
 uniform mat4 uModel;
 uniform mat4 uView;
 uniform mat4 uProjection;
 
-out vec3 FragPos;
-out vec3 Normal;
+varying vec3 FragPos;
+varying vec3 Normal;
 
 void main()
 {
@@ -481,9 +482,10 @@ void main()
     private static string GetFragmentShaderSource()
     {
         return @"
-#version 330 core
-in vec3 FragPos;
-in vec3 Normal;
+#version 110
+
+varying vec3 FragPos;
+varying vec3 Normal;
 
 uniform vec4 uColor;
 uniform vec3 uLightDir;
@@ -493,8 +495,6 @@ uniform vec3 uSpecularColor;
 uniform vec3 uViewPos;
 uniform float uShininess;
 uniform bool uEnableLighting;
-
-out vec4 FragColor;
 
 void main()
 {
@@ -522,7 +522,7 @@ void main()
         color = (ambient + diffuse + specular) * color;
     }
 
-    FragColor = vec4(color, uColor.a);
+    gl_FragColor = vec4(color, uColor.a);
 }
 ";
     }
